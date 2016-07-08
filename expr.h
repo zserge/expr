@@ -582,8 +582,10 @@ static void expr_destroy_args(struct expr *e) {
 }
 
 void expr_destroy(struct expr *e, struct expr_var_list *vars) {
-  expr_destroy_args(e);
-  free(e);
+  if (e != NULL) {
+    expr_destroy_args(e);
+    free(e);
+  }
   if (vars != NULL) {
     for (struct expr_var *v = vars->head; v; ) {
       struct expr_var *next = v->next;

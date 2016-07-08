@@ -47,6 +47,7 @@ static void test_vars() {
   struct expr_var *again = expr_var(&vars, "a", 1);
   assert(again == a);
   assert(again->value == 4);
+  expr_destroy(NULL, &vars);
 }
 
 /*
