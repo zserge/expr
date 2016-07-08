@@ -7,3 +7,9 @@ expr_test: expr_test.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 expr_test.o: expr_test.c expr.h expr_debug.h
+
+clean:
+	rm -f expr_test
+	rm -f *.o
+
+.PHONY: clean all
