@@ -557,7 +557,25 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
   return result;
 }
 
+static void expr_destroy_args(struct expr *e) {
+  int i;
+  struct expr arg;
+  if (e->type == OP_FUNC) {
+    vec_foreach(&e->func.args, arg, i) {
+      expr_destroy_args(&arg);
+    }
+    vec_free(&e->func.args);
+  } else if (e->type != OP_CONST && e->type != OP_VAR) {
+    vec_foreach(&e->op.args, arg, i) {
+      expr_destroy_args(&arg);
+    }
+    vec_free(&e->op.args);
+  }
+}
+
 void expr_destroy(struct expr *e, struct expr_var_list *vars) {
+  expr_destroy_args(e);
+  free(e);
   if (vars != NULL) {
     for (struct expr_var *v = vars->head; v; ) {
       struct expr_var *next = v->next;
