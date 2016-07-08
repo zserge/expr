@@ -521,7 +521,11 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
           return NULL;
         }
         vec_pop(&os);
-        o2 = vec_peek(&os);
+        if (vec_len(&os) > 0) {
+          o2 = vec_peek(&os);
+        } else {
+          o2.n = 0;
+        }
       }
     } else if ((v = expr_var(vars, tok, n)) != NULL) {
       struct expr var = {0};
