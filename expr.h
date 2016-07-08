@@ -554,10 +554,13 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
   }
 
   struct expr *result = (struct expr *)malloc(sizeof(struct expr));
-  if (vec_len(&es) == 0) {
-    result->type = OP_CONST;
-  } else {
-    *result = vec_pop(&es);
+  if (result != NULL) {
+    memset(result, 0, sizeof(struct expr));
+    if (vec_len(&es) == 0) {
+      result->type = OP_CONST;
+    } else {
+      *result = vec_pop(&es);
+    }
   }
   vec_free(&os);
   vec_free(&es);
