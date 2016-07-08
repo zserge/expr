@@ -224,13 +224,14 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
       return v;
     }
   }
-  v = (struct expr_var *)malloc(sizeof(struct expr_var) + len);
+  v = (struct expr_var *)malloc(sizeof(struct expr_var) + len + 1);
   if (v == NULL) {
     return NULL;
   }
   v->next = vars->head;
   v->value = 0;
   strncpy(v->name, s, len);
+  v->name[len] = '\0';
   vars->head = v;
   return v;
 }
