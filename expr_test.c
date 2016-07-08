@@ -22,6 +22,7 @@ static void test_vector() {
   assert(vec_peek(&ints) == 3);
   assert(vec_pop(&ints) == 3);
   assert(vec_len(&ints) == 0);
+  vec_free(&ints);
 
   vec_push(&strings, "hello");
   vec_push(&strings, "world");
@@ -119,15 +120,15 @@ static void test_expr(char *s, float expected) {
   struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
   if (e == NULL) {
     printf("FAIL: %s returned NULL\n", s);
-  } else {
-    float result = expr_eval(e);
-    if (fabs(result - expected) > 0.00001f) {
-      printf("FAIL: %s: %f != %f\n", s, result, expected);
-    } else {
-      printf("OK: %s == %f\n", s, expected);
-    }
-    expr_destroy(e, &vars);
+    return;
   }
+  float result = expr_eval(e);
+  if (fabs(result - expected) > 0.00001f) {
+    printf("FAIL: %s: %f != %f\n", s, result, expected);
+  } else {
+    printf("OK: %s == %f\n", s, expected);
+  }
+  expr_destroy(e, &vars);
 }
 
 static void test_empty() {

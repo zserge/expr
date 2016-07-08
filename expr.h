@@ -559,6 +559,9 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
   } else {
     *result = vec_pop(&es);
   }
+  vec_free(&os);
+  vec_free(&es);
+  vec_free(&as);
   return result;
 }
 
