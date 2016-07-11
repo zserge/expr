@@ -35,7 +35,7 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
 #define vec_nth(v, i) (v)->buf[i]
 #define vec_peek(v) (v)->buf[(v)->len - 1]
 #define vec_pop(v) (v)->buf[--(v)->len]
-#define vec_free(v) (free((v)->buf), (v)->len = (v)->cap = 0)
+#define vec_free(v) (free((v)->buf), (v)->buf = NULL, (v)->len = (v)->cap = 0)
 #define vec_foreach(v, var, iter)                                              \
   if ((v)->len > 0)                                                            \
     for ((iter) = 0; (iter) < (v)->len && (((var) = (v)->buf[(iter)]), 1);     \
@@ -503,7 +503,12 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
         bound_func.func.f = f;
         bound_func.func.args = arg.args;
         if (f->ctxsz > 0) {
-          bound_func.func.context = malloc(f->ctxsz);
+          void *p = malloc(f->ctxsz);
+          if (p == NULL) {
+            return NULL;
+          }
+          memset(p, 0, f->ctxsz);
+          bound_func.func.context = p;
         }
         vec_push(&es, bound_func);
       }
