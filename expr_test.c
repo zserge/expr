@@ -7,6 +7,8 @@
 #include <sys/time.h>
 #include <assert.h>
 
+int status = 0;
+
 /*
  * VECTOR TESTS
  */
@@ -65,13 +67,16 @@ static int assert_tokens(char *s, char **expected) {
         return 0;
       } else {
         printf("FAIL '%s': not enough tokens\n", test);
+        status = 1;
       }
     } else if (n < 0) {
       printf("FAIL '%s': error %d\n", test, n);
+      status = 1;
       return 0;
     }
     if (strncmp(*expected, s, n) != 0) {
       printf("FAIL '%s': token mismatch %.*s %s\n", test, n, s, *expected);
+      status = 1;
       return 0;
     }
     expected++;
@@ -123,11 +128,13 @@ static void test_expr(char *s, float expected) {
   struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
   if (e == NULL) {
     printf("FAIL: %s returned NULL\n", s);
+    status = 1;
     return;
   }
   float result = expr_eval(e);
   if (fabs(result - expected) > 0.00001f) {
     printf("FAIL: %s: %f != %f\n", s, result, expected);
+    status = 1;
   } else {
     printf("OK: %s == %f\n", s, expected);
   }
@@ -149,6 +156,7 @@ static void test_const() {
 
 static void test_unary() {
   test_expr("-1", -1);
+  test_expr("--1", -(-1));
   test_expr("!0 ", !0);
   test_expr("!2 ", !2);
   test_expr("^3", ~3);
@@ -156,6 +164,7 @@ static void test_unary() {
 
 static void test_binary() {
   test_expr("1+2", 1 + 2);
+  test_expr("10-2", 10 - 2);
   test_expr("2*3", 2 * 3);
   test_expr("2+3*4", 2 + 3 * 4);
   test_expr("2*3+4", 2 * 3 + 4);
@@ -213,6 +222,7 @@ static void test_benchmark() {
   struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
   if (e == NULL) {
     printf("FAIL: %s returned NULL\n", s);
+    status = 1;
     return;
   }
   long N = 1000000L;
@@ -243,5 +253,5 @@ int main() {
   test_funcs();
 
   test_benchmark();
-  return 0;
+  return status;
 }
