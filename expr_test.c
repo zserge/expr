@@ -96,7 +96,9 @@ static void test_tokizer() {
 /*
  * PARSER TESTS
  */
-static float user_func_nop(struct expr_func *f, vec_expr_t args, void *c) { return 0; }
+static float user_func_nop(struct expr_func *f, vec_expr_t args, void *c) {
+  return 0;
+}
 
 static float user_func_add(struct expr_func *f, vec_expr_t args, void *c) {
   float a = expr_eval(&vec_nth(&args, 0));

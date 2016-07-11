@@ -128,7 +128,8 @@ static int expr_is_unary(enum expr_type op) {
 }
 
 static int expr_is_binary(enum expr_type op) {
-  return !expr_is_unary(op) && op != OP_CONST && op != OP_VAR && op != OP_FUNC && op != OP_UNKNOWN;
+  return !expr_is_unary(op) && op != OP_CONST && op != OP_VAR &&
+         op != OP_FUNC && op != OP_UNKNOWN;
 }
 
 static int expr_is_left_assoc(enum expr_type op) {
@@ -593,17 +594,13 @@ static void expr_destroy_args(struct expr *e) {
   int i;
   struct expr arg;
   if (e->type == OP_FUNC) {
-    vec_foreach(&e->func.args, arg, i) {
-      expr_destroy_args(&arg);
-    }
+    vec_foreach(&e->func.args, arg, i) { expr_destroy_args(&arg); }
     vec_free(&e->func.args);
     if (e->func.context != NULL) {
       free(e->func.context);
     }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
-    vec_foreach(&e->op.args, arg, i) {
-      expr_destroy_args(&arg);
-    }
+    vec_foreach(&e->op.args, arg, i) { expr_destroy_args(&arg); }
     vec_free(&e->op.args);
   }
 }
@@ -614,7 +611,7 @@ void expr_destroy(struct expr *e, struct expr_var_list *vars) {
     free(e);
   }
   if (vars != NULL) {
-    for (struct expr_var *v = vars->head; v; ) {
+    for (struct expr_var *v = vars->head; v;) {
       struct expr_var *next = v->next;
       free(v);
       v = next;
