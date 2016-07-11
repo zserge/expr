@@ -165,6 +165,16 @@ static void test_binary() {
   test_expr("(3%0)", NAN);
 }
 
+static void test_logical() {
+  test_expr("2&&3", 3);
+  test_expr("0&&3", 0);
+  test_expr("3&&0", 0);
+  test_expr("2||3", 2);
+  test_expr("0||3", 3);
+  test_expr("2||0", 2);
+  test_expr("0||0", 0);
+}
+
 static void test_parens() {
   test_expr("(1+2)*3", (1 + 2) * 3);
   test_expr("(1)", 1);
@@ -224,6 +234,7 @@ int main() {
   test_const();
   test_unary();
   test_binary();
+  test_logical();
   test_parens();
   test_assign();
   test_comma();

@@ -285,9 +285,25 @@ static float expr_eval(struct expr *e) {
     return (int)expr_eval(&e->op.args.buf[0]) ^
            (int)expr_eval(&e->op.args.buf[1]);
   case OP_LOGICAL_AND:
-    return expr_eval(&e->op.args.buf[0]) && expr_eval(&e->op.args.buf[1]);
+    n = expr_eval(&e->op.args.buf[0]);
+    if (n != 0) {
+      n = expr_eval(&e->op.args.buf[1]);
+      if (n != 0) {
+        return n;
+      }
+    }
+    return 0;
   case OP_LOGICAL_OR:
-    return expr_eval(&e->op.args.buf[0]) || expr_eval(&e->op.args.buf[1]);
+    n = expr_eval(&e->op.args.buf[0]);
+    if (n != 0) {
+      return n;
+    } else {
+      n = expr_eval(&e->op.args.buf[1]);
+      if (n != 0) {
+        return n;
+      }
+    }
+    return 0;
   case OP_ASSIGN:
     n = expr_eval(&e->op.args.buf[1]);
     if (e->op.args.buf[0].type == OP_VAR) {
