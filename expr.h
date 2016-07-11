@@ -141,9 +141,9 @@ struct {
   char *s;
   enum expr_type op;
 } OPS[] = {
-    {"-", OP_UNARY_MINUS},
-    {"!", OP_UNARY_LOGICAL_NOT},
-    {"^", OP_UNARY_BITWISE_NOT},
+    {"-u", OP_UNARY_MINUS},
+    {"!u", OP_UNARY_LOGICAL_NOT},
+    {"^u", OP_UNARY_BITWISE_NOT},
     {"**", OP_POWER},
     {"*", OP_MULTIPLY},
     {"/", OP_DIVIDE},
@@ -165,6 +165,11 @@ struct {
     {"||", OP_LOGICAL_OR},
     {"=", OP_ASSIGN},
     {",", OP_COMMA},
+
+    /* These are used by lexer and must be ignored by parser, so we put them at the end */
+    {"-", OP_UNARY_MINUS},
+    {"!", OP_UNARY_LOGICAL_NOT},
+    {"^", OP_UNARY_BITWISE_NOT},
 };
 
 static enum expr_type expr_op(const char *s, size_t len, int unary) {
@@ -460,6 +465,17 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
     char *tok = s;
     s = s + n;
     len = len - n;
+    if (flags & EXPR_UNARY) {
+      if (n == 1) {
+        switch (*tok) {
+          case '-': tok = "-u"; break;
+          case '^': tok = "^u"; break;
+          case '!': tok = "!u"; break;
+          default: return NULL;
+        }
+        n = 2;
+      }
+    }
     if (isspace(*tok)) {
       continue;
     }
