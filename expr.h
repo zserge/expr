@@ -87,7 +87,7 @@ enum expr_type {
 };
 
 typedef vec(struct expr) vec_expr_t;
-typedef float (*exprfn_t)(struct expr_func *f, vec_expr_t args);
+typedef float (*exprfn_t)(struct expr_func *f, vec_expr_t args, void *context);
 
 struct expr {
   enum expr_type type;
@@ -104,6 +104,7 @@ struct expr {
     struct {
       struct expr_func *f;
       vec_expr_t args;
+      void *context;
     } func;
   };
 };
@@ -191,6 +192,7 @@ static float expr_parse_number(const char *s, size_t len) {
 struct expr_func {
   char *name;
   exprfn_t f;
+  size_t ctxsz;
 };
 
 static struct expr_func *expr_func(const char *s, size_t len,
@@ -318,7 +320,7 @@ static float expr_eval(struct expr *e) {
   case OP_VAR:
     return *e->var.value;
   case OP_FUNC:
-    return e->func.f->f(e->func.f, e->func.args);
+    return e->func.f->f(e->func.f, e->func.args, e->func.context);
   case OP_UNKNOWN:
     return 0;
   }
@@ -499,6 +501,9 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
         bound_func.type = OP_FUNC;
         bound_func.func.f = f;
         bound_func.func.args = arg.args;
+        if (f->ctxsz > 0) {
+          bound_func.func.context = malloc(f->ctxsz);
+        }
         vec_push(&es, bound_func);
       }
       paren_next = EXPR_PAREN_FORBIDDEN;
@@ -592,6 +597,9 @@ static void expr_destroy_args(struct expr *e) {
       expr_destroy_args(&arg);
     }
     vec_free(&e->func.args);
+    if (e->func.context != NULL) {
+      free(e->func.context);
+    }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
     vec_foreach(&e->op.args, arg, i) {
       expr_destroy_args(&arg);
