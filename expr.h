@@ -218,7 +218,7 @@ static struct expr_func *expr_func(const char *s, size_t len,
 struct expr_var {
   float value;
   struct expr_var *next;
-  char name[0];
+  char name[];
 };
 
 struct expr_var_list {

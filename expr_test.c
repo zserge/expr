@@ -176,6 +176,17 @@ static void test_binary() {
   test_expr("(3/0)|0", INT_MAX);
   test_expr("(3%0)", NAN);
   test_expr("(3%0)|0", 0);
+  test_expr("2**3", 8);
+  test_expr("2<<3", 2<<3);
+  test_expr("12>>2", 12>>2);
+  test_expr("2<2", 3<2);
+  test_expr("2<=2", 2<=2);
+  test_expr("2==2", 2==2);
+  test_expr("2!=2", 2!=2);
+  test_expr("3>2", 3>2);
+  test_expr("3>=2", 3>=2);
+  test_expr("123&42", 123&42);
+  test_expr("123^42", 123^42);
 }
 
 static void test_logical() {
@@ -213,6 +224,7 @@ static void test_comma() {
 static void test_funcs() {
   test_expr("add(1,2) + next(3)", 7);
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
+  test_expr("nop()", 0);
 }
 
 static void test_benchmark() {
