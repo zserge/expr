@@ -111,7 +111,7 @@ struct expr {
 };
 
 struct expr_string {
-  char *s;
+  const char *s;
   int n;
 };
 struct expr_arg {
@@ -139,8 +139,8 @@ static int expr_is_left_assoc(enum expr_type op) {
 }
 
 static struct {
-  char const *s;
-  enum expr_type op;
+  const char *s;
+  const enum expr_type op;
 } OPS[] = {
     {"-u", OP_UNARY_MINUS},
     {"!u", OP_UNARY_LOGICAL_NOT},
@@ -352,7 +352,7 @@ static float expr_eval(struct expr *e) {
 
 #define EXPR_UNARY (1 << 5)
 
-static int expr_next_token(char *s, size_t len, int *flags) {
+static int expr_next_token(const char *s, size_t len, int *flags) {
   int i = 0;
   if (len == 0) {
     return 0;
@@ -424,7 +424,7 @@ static int expr_next_token(char *s, size_t len, int *flags) {
 #define EXPR_PAREN_EXPECTED 1
 #define EXPR_PAREN_FORBIDDEN 2
 
-static int expr_bind(char *s, size_t len, struct expr_func *funcs,
+static int expr_bind(const char *s, size_t len, struct expr_func *funcs,
                      vec_expr_t *es) {
   enum expr_type op = expr_op(s, len, -1);
   if (op == OP_UNKNOWN) {
@@ -455,7 +455,7 @@ static int expr_bind(char *s, size_t len, struct expr_func *funcs,
   return 0;
 }
 
-static struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
+static struct expr *expr_create(const char *s, size_t len, struct expr_var_list *vars,
                          struct expr_func *funcs) {
   float num;
   struct expr_var *v;
@@ -473,7 +473,7 @@ static struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
     } else if (n < 0) {
       return NULL;
     }
-    char *tok = s;
+    const char *tok = s;
     s = s + n;
     len = len - n;
     if (flags & EXPR_UNARY) {
