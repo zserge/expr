@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <ctype.h> /* for isspace */
 #include <math.h>  /* for pow */
 
@@ -244,6 +245,16 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
   return v;
 }
 
+static int to_int(float x) {
+  if (isnan(x)) {
+    return 0;
+  } else if (isinf(x) != 0) {
+    return INT_MAX * isinf(x);
+  } else {
+    return (int) x;
+  }
+}
+
 static float expr_eval(struct expr *e) {
   float n;
   switch (e->type) {
@@ -252,7 +263,7 @@ static float expr_eval(struct expr *e) {
   case OP_UNARY_LOGICAL_NOT:
     return !(expr_eval(&e->op.args.buf[0]));
   case OP_UNARY_BITWISE_NOT:
-    return ~((int)expr_eval(&e->op.args.buf[0]));
+    return ~(to_int(expr_eval(&e->op.args.buf[0])));
   case OP_POWER:
     return pow(expr_eval(&e->op.args.buf[0]), expr_eval(&e->op.args.buf[1]));
   case OP_MULTIPLY:
@@ -266,11 +277,11 @@ static float expr_eval(struct expr *e) {
   case OP_MINUS:
     return expr_eval(&e->op.args.buf[0]) - expr_eval(&e->op.args.buf[1]);
   case OP_SHL:
-    return (int)expr_eval(&e->op.args.buf[0])
-           << (int)expr_eval(&e->op.args.buf[1]);
+    return to_int(expr_eval(&e->op.args.buf[0]))
+           << to_int(expr_eval(&e->op.args.buf[1]));
   case OP_SHR:
-    return (int)expr_eval(&e->op.args.buf[0]) >>
-           (int)expr_eval(&e->op.args.buf[1]);
+    return to_int(expr_eval(&e->op.args.buf[0])) >>
+           to_int(expr_eval(&e->op.args.buf[1]));
   case OP_LT:
     return expr_eval(&e->op.args.buf[0]) < expr_eval(&e->op.args.buf[1]);
   case OP_LE:
@@ -284,14 +295,14 @@ static float expr_eval(struct expr *e) {
   case OP_NE:
     return expr_eval(&e->op.args.buf[0]) != expr_eval(&e->op.args.buf[1]);
   case OP_BITWISE_AND:
-    return (int)expr_eval(&e->op.args.buf[0]) &
-           (int)expr_eval(&e->op.args.buf[1]);
+    return to_int(expr_eval(&e->op.args.buf[0])) &
+           to_int(expr_eval(&e->op.args.buf[1]));
   case OP_BITWISE_OR:
-    return (int)expr_eval(&e->op.args.buf[0]) |
-           (int)expr_eval(&e->op.args.buf[1]);
+    return to_int(expr_eval(&e->op.args.buf[0])) |
+           to_int(expr_eval(&e->op.args.buf[1]));
   case OP_BITWISE_XOR:
-    return (int)expr_eval(&e->op.args.buf[0]) ^
-           (int)expr_eval(&e->op.args.buf[1]);
+    return to_int(expr_eval(&e->op.args.buf[0])) ^
+           to_int(expr_eval(&e->op.args.buf[1]));
   case OP_LOGICAL_AND:
     n = expr_eval(&e->op.args.buf[0]);
     if (n != 0) {

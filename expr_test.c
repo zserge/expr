@@ -172,8 +172,10 @@ static void test_binary() {
   test_expr("6/2+8*4/2", 19);
   test_expr("3/2", 3.0 / 2.0);
   test_expr("(3/2)|0", 3 / 2);
-  test_expr("(3/0)", NAN);
+  test_expr("(3/0)", INFINITY);
+  test_expr("(3/0)|0", INT_MAX);
   test_expr("(3%0)", NAN);
+  test_expr("(3%0)|0", 0);
 }
 
 static void test_logical() {
@@ -253,5 +255,6 @@ int main() {
   test_funcs();
 
   test_benchmark();
+
   return status;
 }
