@@ -141,6 +141,17 @@ static void test_expr(char *s, float expected) {
   expr_destroy(e, &vars);
 }
 
+static void test_expr_error(char *s) {
+  struct expr_var_list vars = {0};
+  struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
+  if (e != NULL) {
+    printf("FAIL: %s should return error\n", s);
+    status = 1;
+    expr_destroy(e, &vars);
+    return;
+  }
+}
+
 static void test_empty() {
   test_expr("", 0);
   test_expr("  ", 0);
@@ -187,6 +198,7 @@ static void test_binary() {
   test_expr("3>=2", 3>=2);
   test_expr("123&42", 123&42);
   test_expr("123^42", 123^42);
+  test_expr("2=3", 3);
 }
 
 static void test_logical() {
@@ -250,6 +262,37 @@ static void test_benchmark() {
   printf("TIME: %f ns/op (%dM op/sec)\n", ns, (int)(1000 / ns));
 }
 
+static void test_bad_syntax() {
+  test_expr_error("(");
+  test_expr_error(")");
+  test_expr_error("()3");
+  test_expr_error("()x");
+  test_expr_error("0^+1");
+  test_expr_error("()\\");
+  test_expr_error("().");
+  test_expr_error("4ever");
+  test_expr_error("(2+3");
+  test_expr_error("(-2");
+  test_expr_error("*2");
+  test_expr_error("nop");
+  test_expr_error("nop(");
+  test_expr_error("),");
+  test_expr_error("+(");
+  /*test_expr_error("2=3");*/
+  /*test_expr_error("2.3.4");*/
+  test_expr_error("1()");
+  test_expr_error("x()");
+  test_expr_error(",");
+  test_expr_error("1,,2");
+  test_expr_error("nop(,x)");
+  test_expr_error("nop(x=)>1");
+  test_expr_error("1 x");
+  test_expr_error("1++");
+  test_expr_error("foo((x))");
+  test_expr_error("nop(x))");
+  test_expr_error("nop((x)");
+}
+
 int main() {
   test_vector();
   test_vars();
@@ -265,6 +308,8 @@ int main() {
   test_assign();
   test_comma();
   test_funcs();
+
+  test_bad_syntax();
 
   test_benchmark();
 

@@ -15,8 +15,9 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
     void *ptr;
     int n = (*cap == 0) ? 1 : *cap << 1;
     ptr = realloc(*buf, n * memsz);
-    if (ptr == NULL)
-      return -1;
+    if (ptr == NULL) {
+      return -1; /* allocation failed */
+    }
     *buf = (char *) ptr;
     *cap = n;
   }
@@ -235,7 +236,7 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
   }
   v = (struct expr_var *)calloc(1, sizeof(struct expr_var) + len + 1);
   if (v == NULL) {
-    return NULL;
+    return NULL; /* allocation failed */
   }
   v->next = vars->head;
   v->value = 0;
@@ -338,8 +339,8 @@ static float expr_eval(struct expr *e) {
     return *e->var.value;
   case OP_FUNC:
     return e->func.f->f(e->func.f, e->func.args, e->func.context);
-  case OP_UNKNOWN:
-    return 0;
+  default:
+    return NAN;
   }
 }
 
@@ -532,7 +533,7 @@ static struct expr *expr_create(const char *s, size_t len, struct expr_var_list 
         if (f->ctxsz > 0) {
           void *p = calloc(1, f->ctxsz);
           if (p == NULL) {
-            return NULL;
+            return NULL; /* allocation failed */
           }
           bound_func.func.context = p;
         }

@@ -16,5 +16,6 @@ test: expr_test
 clean:
 	rm -f expr_test
 	rm -f *.o
+	rm -f *.gcda *.gcno
 
 .PHONY: clean all
