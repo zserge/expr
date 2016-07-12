@@ -139,7 +139,7 @@ static int expr_is_left_assoc(enum expr_type op) {
 }
 
 static struct {
-  char *s;
+  char const *s;
   enum expr_type op;
 } OPS[] = {
     {"-u", OP_UNARY_MINUS},
