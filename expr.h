@@ -16,7 +16,7 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
     ptr = realloc(*buf, n * memsz);
     if (ptr == NULL)
       return -1;
-    *buf = ptr;
+    *buf = (char *) ptr;
     *cap = n;
   }
   return 0;
@@ -137,7 +137,7 @@ static int expr_is_left_assoc(enum expr_type op) {
          op != OP_COMMA;
 }
 
-struct {
+static struct {
   char *s;
   enum expr_type op;
 } OPS[] = {
@@ -232,7 +232,7 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
       return v;
     }
   }
-  v = (struct expr_var *)malloc(sizeof(struct expr_var) + len + 1);
+  v = (struct expr_var *)calloc(1, sizeof(struct expr_var) + len + 1);
   if (v == NULL) {
     return NULL;
   }
@@ -425,7 +425,7 @@ static int expr_bind(char *s, size_t len, struct expr_func *funcs,
       return -1;
     }
     struct expr arg = vec_pop(es);
-    struct expr unary = {0};
+    struct expr unary = {(enum expr_type) 0};
     unary.type = op;
     vec_push(&unary.op.args, arg);
     vec_push(es, unary);
@@ -435,7 +435,7 @@ static int expr_bind(char *s, size_t len, struct expr_func *funcs,
     }
     struct expr b = vec_pop(es);
     struct expr a = vec_pop(es);
-    struct expr binary = {0};
+    struct expr binary = {(enum expr_type) 0};
     binary.type = op;
     vec_push(&binary.op.args, a);
     vec_push(&binary.op.args, b);
@@ -444,7 +444,7 @@ static int expr_bind(char *s, size_t len, struct expr_func *funcs,
   return 0;
 }
 
-struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
+static struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
                          struct expr_func *funcs) {
   float num;
   struct expr_var *v;
@@ -514,16 +514,15 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
         if (vec_len(&es) > arg.eslen) {
           vec_push(&arg.args, vec_pop(&es));
         }
-        struct expr bound_func = {0};
+        struct expr bound_func = {(enum expr_type) 0};
         bound_func.type = OP_FUNC;
         bound_func.func.f = f;
         bound_func.func.args = arg.args;
         if (f->ctxsz > 0) {
-          void *p = malloc(f->ctxsz);
+          void *p = calloc(1, f->ctxsz);
           if (p == NULL) {
             return NULL;
           }
-          memset(p, 0, f->ctxsz);
           bound_func.func.context = p;
         }
         vec_push(&es, bound_func);
@@ -538,7 +537,7 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
       vec_push(&os, str);
       paren_next = EXPR_PAREN_EXPECTED;
     } else if (expr_op(tok, n, -1) != OP_UNKNOWN) {
-      int op = expr_op(tok, n, -1);
+      enum expr_type op = expr_op(tok, n, -1);
       struct expr_string o2 = {0};
       if (vec_len(&os) > 0) {
         o2 = vec_peek(&os);
@@ -571,7 +570,7 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
         }
       }
     } else if ((v = expr_var(vars, tok, n)) != NULL) {
-      struct expr var = {0};
+      struct expr var = {(enum expr_type) 0};
       var.type = OP_VAR;
       var.var.value = &v->value;
       vec_push(&es, var);
@@ -596,7 +595,7 @@ struct expr *expr_create(char *s, size_t len, struct expr_var_list *vars,
     }
   }
 
-  struct expr *result = (struct expr *)malloc(sizeof(struct expr));
+  struct expr *result = (struct expr *)calloc(1, sizeof(struct expr));
   if (result != NULL) {
     memset(result, 0, sizeof(struct expr));
     if (vec_len(&es) == 0) {
@@ -626,7 +625,7 @@ static void expr_destroy_args(struct expr *e) {
   }
 }
 
-void expr_destroy(struct expr *e, struct expr_var_list *vars) {
+static void expr_destroy(struct expr *e, struct expr_var_list *vars) {
   if (e != NULL) {
     expr_destroy_args(e);
     free(e);
