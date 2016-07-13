@@ -29,6 +29,10 @@
 *.hex
 expr_test
 
+# Test coverage
+*.gcda
+*.gcno
+
 # Debug files
 *.dSYM/
 *.su
