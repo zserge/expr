@@ -188,16 +188,16 @@ static void test_binary() {
   test_expr("(3%0)", NAN);
   test_expr("(3%0)|0", 0);
   test_expr("2**3", 8);
-  test_expr("2<<3", 2<<3);
-  test_expr("12>>2", 12>>2);
-  test_expr("2<2", 3<2);
-  test_expr("2<=2", 2<=2);
-  test_expr("2==2", 2==2);
-  test_expr("2!=2", 2!=2);
-  test_expr("3>2", 3>2);
-  test_expr("3>=2", 3>=2);
-  test_expr("123&42", 123&42);
-  test_expr("123^42", 123^42);
+  test_expr("2<<3", 2 << 3);
+  test_expr("12>>2", 12 >> 2);
+  test_expr("2<2", 3 < 2);
+  test_expr("2<=2", 2 <= 2);
+  test_expr("2==2", 2 == 2);
+  test_expr("2!=2", 2 != 2);
+  test_expr("3>2", 3 > 2);
+  test_expr("3>=2", 3 >= 2);
+  test_expr("123&42", 123 & 42);
+  test_expr("123^42", 123 ^ 42);
 }
 
 static void test_logical() {

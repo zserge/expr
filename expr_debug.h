@@ -173,7 +173,7 @@ static void expr_print(struct expr *e) {
     printf("%.2f", e->num.value);
     break;
   case OP_VAR:
-    printf("[%.2f@%p]", *e->var.value, (void *) e->var.value);
+    printf("[%.2f@%p]", *e->var.value, (void *)e->var.value);
     break;
   case OP_FUNC:
     printf("func(todo)");

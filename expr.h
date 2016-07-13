@@ -18,7 +18,7 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
     if (ptr == NULL) {
       return -1; /* allocation failed */
     }
-    *buf = (char *) ptr;
+    *buf = (char *)ptr;
     *cap = n;
   }
   return 0;
@@ -143,35 +143,36 @@ static struct {
   const char *s;
   const enum expr_type op;
 } OPS[] = {
-    {"-u", OP_UNARY_MINUS},
-    {"!u", OP_UNARY_LOGICAL_NOT},
-    {"^u", OP_UNARY_BITWISE_NOT},
-    {"**", OP_POWER},
-    {"*", OP_MULTIPLY},
-    {"/", OP_DIVIDE},
-    {"%", OP_REMAINDER},
-    {"+", OP_PLUS},
-    {"-", OP_MINUS},
-    {"<<", OP_SHL},
-    {">>", OP_SHR},
-    {"<", OP_LT},
-    {"<=", OP_LE},
-    {">", OP_GT},
-    {">=", OP_GE},
-    {"==", OP_EQ},
-    {"!=", OP_NE},
-    {"&", OP_BITWISE_AND},
-    {"|", OP_BITWISE_OR},
-    {"^", OP_BITWISE_XOR},
-    {"&&", OP_LOGICAL_AND},
-    {"||", OP_LOGICAL_OR},
-    {"=", OP_ASSIGN},
-    {",", OP_COMMA},
+  {"-u", OP_UNARY_MINUS},
+  {"!u", OP_UNARY_LOGICAL_NOT},
+  {"^u", OP_UNARY_BITWISE_NOT},
+  {"**", OP_POWER},
+  {"*", OP_MULTIPLY},
+  {"/", OP_DIVIDE},
+  {"%", OP_REMAINDER},
+  {"+", OP_PLUS},
+  {"-", OP_MINUS},
+  {"<<", OP_SHL},
+  {">>", OP_SHR},
+  {"<", OP_LT},
+  {"<=", OP_LE},
+  {">", OP_GT},
+  {">=", OP_GE},
+  {"==", OP_EQ},
+  {"!=", OP_NE},
+  {"&", OP_BITWISE_AND},
+  {"|", OP_BITWISE_OR},
+  {"^", OP_BITWISE_XOR},
+  {"&&", OP_LOGICAL_AND},
+  {"||", OP_LOGICAL_OR},
+  {"=", OP_ASSIGN},
+  {",", OP_COMMA},
 
-    /* These are used by lexer and must be ignored by parser, so we put them at the end */
-    {"-", OP_UNARY_MINUS},
-    {"!", OP_UNARY_LOGICAL_NOT},
-    {"^", OP_UNARY_BITWISE_NOT},
+  /* These are used by lexer and must be ignored by parser, so we put
+     them at the end */
+  {"-", OP_UNARY_MINUS},
+  {"!", OP_UNARY_LOGICAL_NOT},
+  {"^", OP_UNARY_BITWISE_NOT},
 };
 
 static enum expr_type expr_op(const char *s, size_t len, int unary) {
@@ -255,7 +256,7 @@ static int to_int(float x) {
   } else if (isinf(x) != 0) {
     return INT_MAX * isinf(x);
   } else {
-    return (int) x;
+    return (int)x;
   }
 }
 
@@ -440,7 +441,7 @@ static int expr_bind(const char *s, size_t len, struct expr_func *funcs,
       return -1;
     }
     struct expr arg = vec_pop(es);
-    struct expr unary = {(enum expr_type) 0};
+    struct expr unary = {(enum expr_type)0};
     unary.type = op;
     vec_push(&unary.op.args, arg);
     vec_push(es, unary);
@@ -450,7 +451,7 @@ static int expr_bind(const char *s, size_t len, struct expr_func *funcs,
     }
     struct expr b = vec_pop(es);
     struct expr a = vec_pop(es);
-    struct expr binary = {(enum expr_type) 0};
+    struct expr binary = {(enum expr_type)0};
     binary.type = op;
     if (op == OP_ASSIGN && a.type != OP_VAR) {
       return -1; /* Bad assignment */
@@ -462,8 +463,9 @@ static int expr_bind(const char *s, size_t len, struct expr_func *funcs,
   return 0;
 }
 
-static struct expr *expr_create(const char *s, size_t len, struct expr_var_list *vars,
-                         struct expr_func *funcs) {
+static struct expr *expr_create(const char *s, size_t len,
+                                struct expr_var_list *vars,
+                                struct expr_func *funcs) {
   float num;
   struct expr_var *v;
 
@@ -486,10 +488,17 @@ static struct expr *expr_create(const char *s, size_t len, struct expr_var_list 
     if (flags & EXPR_UNARY) {
       if (n == 1) {
         switch (*tok) {
-          case '-': tok = "-u"; break;
-          case '^': tok = "^u"; break;
-          case '!': tok = "!u"; break;
-          default: return NULL;
+        case '-':
+          tok = "-u";
+          break;
+        case '^':
+          tok = "^u";
+          break;
+        case '!':
+          tok = "!u";
+          break;
+        default:
+          return NULL;
         }
         n = 2;
       }
@@ -532,7 +541,7 @@ static struct expr *expr_create(const char *s, size_t len, struct expr_var_list 
         if (vec_len(&es) > arg.eslen) {
           vec_push(&arg.args, vec_pop(&es));
         }
-        struct expr bound_func = {(enum expr_type) 0};
+        struct expr bound_func = {(enum expr_type)0};
         bound_func.type = OP_FUNC;
         bound_func.func.f = f;
         bound_func.func.args = arg.args;
@@ -588,7 +597,7 @@ static struct expr *expr_create(const char *s, size_t len, struct expr_var_list 
         }
       }
     } else if ((v = expr_var(vars, tok, n)) != NULL) {
-      struct expr var = {(enum expr_type) 0};
+      struct expr var = {(enum expr_type)0};
       var.type = OP_VAR;
       var.var.value = &v->value;
       vec_push(&es, var);
