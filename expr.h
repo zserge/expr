@@ -269,13 +269,13 @@ static float expr_eval(struct expr *e) {
   case OP_UNARY_BITWISE_NOT:
     return ~(to_int(expr_eval(&e->op.args.buf[0])));
   case OP_POWER:
-    return pow(expr_eval(&e->op.args.buf[0]), expr_eval(&e->op.args.buf[1]));
+    return powf(expr_eval(&e->op.args.buf[0]), expr_eval(&e->op.args.buf[1]));
   case OP_MULTIPLY:
     return expr_eval(&e->op.args.buf[0]) * expr_eval(&e->op.args.buf[1]);
   case OP_DIVIDE:
     return expr_eval(&e->op.args.buf[0]) / expr_eval(&e->op.args.buf[1]);
   case OP_REMAINDER:
-    return fmod(expr_eval(&e->op.args.buf[0]), expr_eval(&e->op.args.buf[1]));
+    return fmodf(expr_eval(&e->op.args.buf[0]), expr_eval(&e->op.args.buf[1]));
   case OP_PLUS:
     return expr_eval(&e->op.args.buf[0]) + expr_eval(&e->op.args.buf[1]);
   case OP_MINUS:
@@ -615,7 +615,6 @@ static struct expr *expr_create(const char *s, size_t len, struct expr_var_list 
 
   struct expr *result = (struct expr *)calloc(1, sizeof(struct expr));
   if (result != NULL) {
-    memset(result, 0, sizeof(struct expr));
     if (vec_len(&es) == 0) {
       result->type = OP_CONST;
     } else {
