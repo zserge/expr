@@ -198,7 +198,6 @@ static void test_binary() {
   test_expr("3>=2", 3>=2);
   test_expr("123&42", 123&42);
   test_expr("123^42", 123^42);
-  test_expr("2=3", 3);
 }
 
 static void test_logical() {
@@ -278,7 +277,7 @@ static void test_bad_syntax() {
   test_expr_error("nop(");
   test_expr_error("),");
   test_expr_error("+(");
-  /*test_expr_error("2=3");*/
+  test_expr_error("2=3");
   /*test_expr_error("2.3.4");*/
   test_expr_error("1()");
   test_expr_error("x()");

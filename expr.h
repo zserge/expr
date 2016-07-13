@@ -449,6 +449,9 @@ static int expr_bind(const char *s, size_t len, struct expr_func *funcs,
     struct expr a = vec_pop(es);
     struct expr binary = {(enum expr_type) 0};
     binary.type = op;
+    if (op == OP_ASSIGN && a.type != OP_VAR) {
+      return -1; /* Bad assignment */
+    }
     vec_push(&binary.op.args, a);
     vec_push(&binary.op.args, b);
     vec_push(es, binary);
