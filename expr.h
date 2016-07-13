@@ -229,6 +229,9 @@ struct expr_var_list {
 static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
                                  size_t len) {
   struct expr_var *v = NULL;
+  if (len == 0 || isdigit(*s)) {
+    return NULL;
+  }
   for (v = vars->head; v; v = v->next) {
     if (strlen(v->name) == len && strncmp(v->name, s, len) == 0) {
       return v;

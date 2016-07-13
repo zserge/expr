@@ -278,7 +278,7 @@ static void test_bad_syntax() {
   test_expr_error("),");
   test_expr_error("+(");
   test_expr_error("2=3");
-  /*test_expr_error("2.3.4");*/
+  test_expr_error("2.3.4");
   test_expr_error("1()");
   test_expr_error("x()");
   test_expr_error(",");
