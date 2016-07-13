@@ -14,7 +14,7 @@ input and returns floating-point number as a result.
 * Low memory usage makes it suitable for embedded systems
 * Pure C99 with no external dependencies
 * Good test coverage
-* Easy to understand (~600 LOC)
+* Easy to understand (~600 LOC in a single header file)
 
 ## Example
 
