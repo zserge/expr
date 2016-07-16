@@ -589,7 +589,7 @@ static struct expr *expr_create(const char *s, size_t len,
         if (expr_bind(o2.s, o2.n, &es) == -1) {
           return NULL;
         }
-        vec_pop(&os);
+        (void) vec_pop(&os);
         if (vec_len(&os) > 0) {
           o2 = vec_peek(&os);
         } else {
