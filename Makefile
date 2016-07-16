@@ -1,5 +1,5 @@
 CC := clang
-CFLAGS := -std=c11 -g -pedantic -fprofile-arcs -ftest-coverage
+CFLAGS := -std=c99 -g -pedantic -fprofile-arcs -ftest-coverage -Wall -Wextra -Wno-missing-field-initializers
 LDFLAGS := -lm -g -fprofile-arcs -ftest-coverage
 
 all: expr_test

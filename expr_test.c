@@ -1,10 +1,12 @@
 #include "expr.h"
 
-#if !defined(NDEBUG)
+#if 0
+/* This can be useful for debugging */
 #include "expr_debug.h"
 #endif
 
 #include <sys/time.h>
+#include <stdio.h>
 #include <assert.h>
 
 int status = 0;
@@ -44,7 +46,9 @@ static void test_vars() {
 
   struct expr_var *a = expr_var(&vars, "a", 1);
   a->value = 4;
-  struct expr_var *b = expr_var(&vars, "b", 1);
+
+  expr_var(&vars, "b", 1);
+  expr_var(&vars, "ab", 2);
 
   struct expr_var *again = expr_var(&vars, "a", 1);
   assert(again == a);
@@ -93,7 +97,7 @@ static void test_tokizer() {
       (char *[]){"1**11", "1", "**", "11", NULL},
       (char *[]){"1**-11", "1", "**", "-", "11", NULL},
   };
-  for (int i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
+  for (unsigned int i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
     assert_tokens(TESTS[i][0], TESTS[i] + 1);
   }
 }
@@ -102,16 +106,19 @@ static void test_tokizer() {
  * PARSER TESTS
  */
 static float user_func_nop(struct expr_func *f, vec_expr_t args, void *c) {
+  (void) f, (void) args, (void) c;
   return 0;
 }
 
 static float user_func_add(struct expr_func *f, vec_expr_t args, void *c) {
+  (void) f, (void) c;
   float a = expr_eval(&vec_nth(&args, 0));
   float b = expr_eval(&vec_nth(&args, 1));
   return a + b;
 }
 
 static float user_func_next(struct expr_func *f, vec_expr_t args, void *c) {
+  (void) f, (void) c;
   float a = expr_eval(&vec_nth(&args, 0));
   return a + 1;
 }
