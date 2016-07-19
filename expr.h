@@ -139,6 +139,8 @@ static int expr_is_left_assoc(enum expr_type op) {
          op != OP_COMMA;
 }
 
+#define isvarchr(c) (isalpha(c) || isdigit(c) || c == '_' || c == '#')
+
 static struct {
   const char *s;
   const enum expr_type op;
@@ -383,7 +385,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
       return -2; // unexpected word
     }
     *flags = EXPR_TOP | EXPR_TOPEN | EXPR_TCLOSE;
-    while ((isalpha(c) || isdigit(c) || c == '_') && i < len) {
+    while ((isvarchr(c)) && i < len) {
       i++;
       c = s[i];
     }
@@ -406,7 +408,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
       return 1;
     } else {
       int found = 0;
-      while (!isalpha(c) && !isdigit(c) && !isspace(c) && c != '_' &&
+      while (!isvarchr(c) && !isspace(c) &&
              c != '(' && c != ')' && i < len) {
         if (expr_op(s, i + 1, 0) != OP_UNKNOWN) {
           found = 1;
