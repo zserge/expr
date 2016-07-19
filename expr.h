@@ -198,7 +198,7 @@ static float expr_parse_number(const char *s, size_t len) {
 }
 
 /*
- * Functions TODO
+ * Functions
  */
 struct expr_func {
   char *name;
