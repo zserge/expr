@@ -187,6 +187,8 @@ static void test_binary() {
   test_expr("2+3*4", 2 + 3 * 4);
   test_expr("2*3+4", 2 * 3 + 4);
   test_expr("2+3/2", 2 + 3.0 / 2.0);
+  test_expr("1/3*6/4*2", 1.0/3*6/4.0*2);
+  test_expr("1*3/6*4/2", 1.0*3/6*4.0/2.0);
   test_expr("6/2+8*4/2", 19);
   test_expr("3/2", 3.0 / 2.0);
   test_expr("(3/2)|0", 3 / 2);
