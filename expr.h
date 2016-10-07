@@ -526,7 +526,7 @@ static struct expr *expr_create(const char *s, size_t len,
     if (idn > 0) {
       if (n == 1 && *tok == '(') {
         if (expr_func(funcs, id, idn) != NULL) {
-          struct expr_string str = {id, (int) idn};
+          struct expr_string str = {id, (int)idn};
           vec_push(&os, str);
           paren = EXPR_PAREN_EXPECTED;
         } else {
