@@ -526,7 +526,7 @@ static struct expr *expr_create(const char *s, size_t len,
     if (idn > 0) {
       if (n == 1 && *tok == '(') {
         if (expr_func(funcs, id, idn) != NULL) {
-          struct expr_string str = {id, idn};
+          struct expr_string str = {id, (int) idn};
           vec_push(&os, str);
           paren = EXPR_PAREN_EXPECTED;
         } else {
@@ -688,7 +688,7 @@ static void expr_destroy_args(struct expr *e) {
   }
 }
 
-static void expr_copy(struct expr *dst, struct expr *src) {
+static inline void expr_copy(struct expr *dst, struct expr *src) {
   int i;
   struct expr arg;
   dst->type = src->type;
