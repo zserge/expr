@@ -237,6 +237,7 @@ static void test_assign() {
 static void test_comma() {
   test_expr("2,3,4", 4);
   test_expr("2+3,4*5", 4 * 5);
+  test_expr("x=5, x", 5);
   test_expr("x=5, y = 3, x+y", 8);
   test_expr("x=5, x=(x!=0)", 1);
   test_expr("x=5, x = x+1", 6);
@@ -246,6 +247,11 @@ static void test_funcs() {
   test_expr("add(1,2) + next(3)", 7);
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
   test_expr("nop()", 0);
+}
+
+static void test_name_collision() {
+  test_expr("next=5", 5);
+  test_expr("next=2,next(5)+next", 8);
 }
 
 static void test_benchmark() {
@@ -283,7 +289,7 @@ static void test_bad_syntax() {
   test_expr_error("(2+3");
   test_expr_error("(-2");
   test_expr_error("*2");
-  test_expr_error("nop");
+  test_expr_error("nop=");
   test_expr_error("nop(");
   test_expr_error("),");
   test_expr_error("+(");
@@ -317,6 +323,8 @@ int main() {
   test_assign();
   test_comma();
   test_funcs();
+
+  test_name_collision();
 
   test_bad_syntax();
 
