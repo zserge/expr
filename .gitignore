@@ -36,3 +36,6 @@ expr_test
 # Debug files
 *.dSYM/
 *.su
+
+# Makefile local config
+config.mk
