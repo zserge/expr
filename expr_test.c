@@ -123,10 +123,23 @@ static float user_func_next(struct expr_func *f, vec_expr_t args, void *c) {
   return a + 1;
 }
 
+static float user_func_print(struct expr_func *f, vec_expr_t args, void *c) {
+  (void) f, (void) c;
+  int i;
+  struct expr e;
+  fprintf(stderr, ">> ");
+  vec_foreach(&args, e, i) {
+    fprintf(stderr, "%f ", expr_eval(&e));
+  }
+  fprintf(stderr, "\n");
+  return 0;
+}
+
 static struct expr_func user_funcs[] = {
     {"nop", user_func_nop, 100},
     {"add", user_func_add, 0},
     {"next", user_func_next, 0},
+    {"print", user_func_print, 0},
     {NULL, NULL, 0},
 };
 
@@ -247,6 +260,12 @@ static void test_funcs() {
   test_expr("add(1,2) + next(3)", 7);
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
   test_expr("nop()", 0);
+  test_expr("$(zero), zero()", 0);
+  test_expr("$(zero), zero(1)", 0);
+  test_expr("$(one, 1), one()+one(1)+one(1, 2, 4)", 3);
+  test_expr("$(number, 1), $(number, 2+3), number()", 5);
+  test_expr("$(triw, ($1 * 256) & 255), triw(0.5, 2)", 128);
+  test_expr("$(triw, ($1 * 256) & 255), triw(0.1)+triw(0.7)+triw(0.2)", 255);
 }
 
 static void test_name_collision() {
@@ -291,6 +310,8 @@ static void test_bad_syntax() {
   test_expr_error("*2");
   test_expr_error("nop=");
   test_expr_error("nop(");
+  test_expr_error("unknownfunc()");
+  test_expr_error("$(recurse, recurse()), recurse()");
   test_expr_error("),");
   test_expr_error("+(");
   test_expr_error("2=3");
@@ -306,6 +327,9 @@ static void test_bad_syntax() {
   test_expr_error("foo((x))");
   test_expr_error("nop(x))");
   test_expr_error("nop((x)");
+  test_expr_error("$($())");
+  test_expr_error("$(1)");
+  test_expr_error("$()");
 }
 
 int main() {
