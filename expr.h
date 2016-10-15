@@ -535,6 +535,8 @@ static struct expr *expr_create(const char *s, size_t len,
   const char *id = NULL;
   size_t idn = 0;
 
+  struct expr *result = NULL;
+
   vec_expr_t es = {0};
   vec_str_t os = {0};
   vec_arg_t as = {0};
@@ -552,7 +554,7 @@ static struct expr *expr_create(const char *s, size_t len,
     if (n == 0) {
       break;
     } else if (n < 0) {
-      return NULL;
+      goto cleanup;
     }
     const char *tok = s;
     s = s + n;
@@ -570,7 +572,7 @@ static struct expr *expr_create(const char *s, size_t len,
           tok = "!u";
           break;
         default:
-          return NULL;
+          goto cleanup;
         }
         n = 2;
       }
@@ -597,7 +599,7 @@ static struct expr *expr_create(const char *s, size_t len,
           vec_push(&os, str);
           paren = EXPR_PAREN_EXPECTED;
         } else {
-          return NULL; /* invalid function name */
+          goto cleanup; /* invalid function name */
         }
       } else if ((v = expr_var(vars, id, idn)) != NULL) {
         vec_push(&es, expr_varref(v));
@@ -617,21 +619,21 @@ static struct expr *expr_create(const char *s, size_t len,
         struct expr_string str = {"(", 1};
         vec_push(&os, str);
       } else {
-        return NULL; // Bad call
+        goto cleanup; // Bad call
       }
     } else if (paren == EXPR_PAREN_EXPECTED) {
-      return NULL; // Bad call
+      goto cleanup; // Bad call
     } else if (n == 1 && *tok == ')') {
       int minlen = (vec_len(&as) > 0 ? vec_peek(&as).oslen : 0);
       while (vec_len(&os) > minlen && *vec_peek(&os).s != '(' &&
              *vec_peek(&os).s != '{') {
         struct expr_string str = vec_pop(&os);
         if (expr_bind(str.s, str.n, &es) == -1) {
-          return NULL;
+          goto cleanup;
         }
       }
       if (vec_len(&os) == 0) {
-        return NULL; // Bad parens
+        goto cleanup; // Bad parens
       }
       struct expr_string str = vec_pop(&os);
       if (str.n == 1 && *str.s == '{') {
@@ -642,11 +644,11 @@ static struct expr *expr_create(const char *s, size_t len,
         }
         if (str.n == 1 && str.s[0] == '$') {
           if (vec_len(&arg.args) < 1) {
-            return NULL; /* too many arguments for $() function */
+            goto cleanup; /* too many arguments for $() function */
           }
           struct expr *u = &vec_nth(&arg.args, 0);
           if (u->type != OP_VAR) {
-            return NULL; /* first argument is not a variable */
+            goto cleanup; /* first argument is not a variable */
           }
           for (struct expr_var *v = vars->head; v; v = v->next) {
             if (&v->value == u->param.var.value) {
@@ -699,7 +701,7 @@ static struct expr *expr_create(const char *s, size_t len,
             if (f->ctxsz > 0) {
               void *p = calloc(1, f->ctxsz);
               if (p == NULL) {
-                return NULL; /* allocation failed */
+                goto cleanup; /* allocation failed */
               }
               bound_func.param.func.context = p;
             }
@@ -735,7 +737,7 @@ static struct expr *expr_create(const char *s, size_t len,
         }
 
         if (expr_bind(o2.s, o2.n, &es) == -1) {
-          return NULL;
+          goto cleanup;
         }
         (void)vec_pop(&os);
         if (vec_len(&os) > 0) {
@@ -750,7 +752,7 @@ static struct expr *expr_create(const char *s, size_t len,
         id = tok;
         idn = n;
       } else {
-        return NULL; // Bad variable name, e.g. '2.3.4' or '4ever'
+        goto cleanup; // Bad variable name, e.g. '2.3.4' or '4ever'
       }
     }
     paren = paren_next;
@@ -763,14 +765,14 @@ static struct expr *expr_create(const char *s, size_t len,
   while (vec_len(&os) > 0) {
     struct expr_string rest = vec_pop(&os);
     if (rest.n == 1 && (*rest.s == '(' || *rest.s == ')')) {
-      return NULL; // Bad paren
+      goto cleanup; // Bad paren
     }
     if (expr_bind(rest.s, rest.n, &es) == -1) {
-      return NULL;
+      goto cleanup;
     }
   }
 
-  struct expr *result = (struct expr *)calloc(1, sizeof(struct expr));
+  result = (struct expr *)calloc(1, sizeof(struct expr));
   if (result != NULL) {
     if (vec_len(&es) == 0) {
       result->type = OP_CONST;
@@ -778,6 +780,7 @@ static struct expr *expr_create(const char *s, size_t len,
       *result = vec_pop(&es);
     }
   }
+cleanup:
   vec_free(&macros);
   vec_free(&os);
   vec_free(&es);
