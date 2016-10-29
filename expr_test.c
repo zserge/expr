@@ -5,9 +5,9 @@
 #include "expr_debug.h"
 #endif
 
-#include <sys/time.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
+#include <sys/time.h>
 
 int status = 0;
 
@@ -91,7 +91,8 @@ static int assert_tokens(char *s, char **expected) {
 
 static void test_tokizer() {
   char **TESTS[] = {
-      (char *[]){"", NULL}, (char *[]){"1", "1", NULL},
+      (char *[]){"", NULL},
+      (char *[]){"1", "1", NULL},
       (char *[]){"1+11", "1", "+", "11", NULL},
       (char *[]){"1*11", "1", "*", "11", NULL},
       (char *[]){"1**11", "1", "**", "11", NULL},
@@ -105,38 +106,47 @@ static void test_tokizer() {
 /*
  * PARSER TESTS
  */
+struct nop_context {
+  void *p;
+};
 static float user_func_nop(struct expr_func *f, vec_expr_t args, void *c) {
-  (void) f, (void) args, (void) c;
+  (void)args;
+  struct nop_context *nop = (struct nop_context *)c;
+  if (f->ctxsz == 0) {
+    free(nop->p);
+    return 0;
+  }
+  if (nop->p == NULL) {
+    nop->p = malloc(10000);
+  }
   return 0;
 }
 
 static float user_func_add(struct expr_func *f, vec_expr_t args, void *c) {
-  (void) f, (void) c;
+  (void)f, (void)c;
   float a = expr_eval(&vec_nth(&args, 0));
   float b = expr_eval(&vec_nth(&args, 1));
   return a + b;
 }
 
 static float user_func_next(struct expr_func *f, vec_expr_t args, void *c) {
-  (void) f, (void) c;
+  (void)f, (void)c;
   float a = expr_eval(&vec_nth(&args, 0));
   return a + 1;
 }
 
 static float user_func_print(struct expr_func *f, vec_expr_t args, void *c) {
-  (void) f, (void) c;
+  (void)f, (void)c;
   int i;
   struct expr e;
   fprintf(stderr, ">> ");
-  vec_foreach(&args, e, i) {
-    fprintf(stderr, "%f ", expr_eval(&e));
-  }
+  vec_foreach(&args, e, i) { fprintf(stderr, "%f ", expr_eval(&e)); }
   fprintf(stderr, "\n");
   return 0;
 }
 
 static struct expr_func user_funcs[] = {
-    {"nop", user_func_nop, 100},
+    {"nop", user_func_nop, sizeof(struct nop_context)},
     {"add", user_func_add, 0},
     {"next", user_func_next, 0},
     {"print", user_func_print, 0},
@@ -167,9 +177,8 @@ static void test_expr_error(char *s) {
   if (e != NULL) {
     printf("FAIL: %s should return error\n", s);
     status = 1;
-    expr_destroy(e, &vars);
-    return;
   }
+  expr_destroy(e, &vars);
 }
 
 static void test_empty() {
@@ -200,8 +209,8 @@ static void test_binary() {
   test_expr("2+3*4", 2 + 3 * 4);
   test_expr("2*3+4", 2 * 3 + 4);
   test_expr("2+3/2", 2 + 3.0 / 2.0);
-  test_expr("1/3*6/4*2", 1.0/3*6/4.0*2);
-  test_expr("1*3/6*4/2", 1.0*3/6*4.0/2.0);
+  test_expr("1/3*6/4*2", 1.0 / 3 * 6 / 4.0 * 2);
+  test_expr("1*3/6*4/2", 1.0 * 3 / 6 * 4.0 / 2.0);
   test_expr("6/2+8*4/2", 19);
   test_expr("3/2", 3.0 / 2.0);
   test_expr("(3/2)|0", 3 / 2);
@@ -210,7 +219,7 @@ static void test_binary() {
   test_expr("(3%0)", NAN);
   test_expr("(3%0)|0", 0);
   test_expr("2**3", 8);
-  test_expr("1+2<<3", (1+2)<<3);
+  test_expr("1+2<<3", (1 + 2) << 3);
   test_expr("2<<3", 2 << 3);
   test_expr("12>>2", 12 >> 2);
   test_expr("2<2", 3 < 2);
@@ -221,6 +230,9 @@ static void test_binary() {
   test_expr("3>=2", 3 >= 2);
   test_expr("123&42", 123 & 42);
   test_expr("123^42", 123 ^ 42);
+
+  test_expr("1-1+1+1", 1 - 1 + 1 + 1);
+  test_expr("2**2**3", 256); /* 2^(2^3), not (2^2)^3 */
 }
 
 static void test_logical() {
@@ -261,7 +273,7 @@ static void test_funcs() {
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
   test_expr("nop()", 0);
   test_expr("$(zero), zero()", 0);
-  test_expr("$(zero), zero(1)", 0);
+  test_expr("$(zero), zero(1, 2, 3)", 0);
   test_expr("$(one, 1), one()+one(1)+one(1, 2, 4)", 3);
   test_expr("$(number, 1), $(number, 2+3), number()", 5);
   test_expr("$(triw, ($1 * 256) & 255), triw(0.5, 2)", 128);
