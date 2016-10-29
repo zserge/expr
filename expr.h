@@ -93,6 +93,7 @@ static int prec[] = {0, 1, 1, 1, 2, 2, 2, 2, 3,  3,  4,  4, 5, 5,
                      5, 5, 5, 5, 6, 7, 8, 9, 10, 11, 12, 0, 0, 0};
 
 typedef vec(struct expr) vec_expr_t;
+typedef void (*exprfn_cleanup_t)(struct expr_func *f, void *context);
 typedef float (*exprfn_t)(struct expr_func *f, vec_expr_t args, void *context);
 
 struct expr {
@@ -210,6 +211,7 @@ static float expr_parse_number(const char *s, size_t len) {
 struct expr_func {
   const char *name;
   exprfn_t f;
+  exprfn_cleanup_t cleanup;
   size_t ctxsz;
 };
 
@@ -825,9 +827,9 @@ static void expr_destroy_args(struct expr *e) {
     vec_foreach(&e->param.func.args, arg, i) { expr_destroy_args(&arg); }
     vec_free(&e->param.func.args);
     if (e->param.func.context != NULL) {
-      e->param.func.f->ctxsz = 0;
-      e->param.func.f->f(e->param.func.f, e->param.func.args,
-                         e->param.func.context);
+      if (e->param.func.f->cleanup != NULL) {
+        e->param.func.f->cleanup(e->param.func.f, e->param.func.context);
+      }
       free(e->param.func.context);
     }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
