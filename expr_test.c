@@ -109,7 +109,8 @@ static void test_tokizer() {
 struct nop_context {
   void *p;
 };
-static float user_func_nop_cleanup(struct expr_func *f, void *c) {
+static void user_func_nop_cleanup(struct expr_func *f, void *c) {
+  (void)f;
   struct nop_context *nop = (struct nop_context *)c;
   free(nop->p);
 }
@@ -154,7 +155,7 @@ static struct expr_func user_funcs[] = {
     {"add", user_func_add, NULL, 0},
     {"next", user_func_next, NULL, 0},
     {"print", user_func_print, NULL, 0},
-    {NULL, NULL, 0},
+    {NULL, NULL, NULL, 0},
 };
 
 static void test_expr(char *s, float expected) {
