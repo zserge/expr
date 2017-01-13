@@ -30,11 +30,12 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
     int len;                                                                   \
     int cap;                                                                   \
   }
+#define vec_init() {NULL, 0, 0}
 #define vec_len(v) ((v)->len)
 #define vec_unpack(v)                                                          \
   (char **)&(v)->buf, &(v)->len, &(v)->cap, sizeof(*(v)->buf)
 #define vec_push(v, val)                                                       \
-  (vec_expand(vec_unpack(v)) ? -1 : ((v)->buf[(v)->len++] = (val), 0), 0)
+  vec_expand(vec_unpack(v)) ? -1 : ((v)->buf[(v)->len++] = (val), 0)
 #define vec_nth(v, i) (v)->buf[i]
 #define vec_peek(v) (v)->buf[(v)->len - 1]
 #define vec_pop(v) (v)->buf[--(v)->len]
@@ -115,6 +116,8 @@ struct expr {
     } func;
   } param;
 };
+
+#define expr_init() {(enum expr_type) 0, {{0}}}
 
 struct expr_string {
   const char *s;
@@ -463,7 +466,7 @@ static int expr_bind(const char *s, size_t len, vec_expr_t *es) {
       return -1;
     }
     struct expr arg = vec_pop(es);
-    struct expr unary = {(enum expr_type)0};
+    struct expr unary = expr_init();
     unary.type = op;
     vec_push(&unary.param.op.args, arg);
     vec_push(es, unary);
@@ -473,7 +476,7 @@ static int expr_bind(const char *s, size_t len, vec_expr_t *es) {
     }
     struct expr b = vec_pop(es);
     struct expr a = vec_pop(es);
-    struct expr binary = {(enum expr_type)0};
+    struct expr binary = expr_init();
     binary.type = op;
     if (op == OP_ASSIGN && a.type != OP_VAR) {
       return -1; /* Bad assignment */
@@ -486,14 +489,14 @@ static int expr_bind(const char *s, size_t len, vec_expr_t *es) {
 }
 
 static struct expr expr_const(float value) {
-  struct expr e = {(enum expr_type)0};
+  struct expr e = expr_init();
   e.type = OP_CONST;
   e.param.num.value = value;
   return e;
 }
 
 static struct expr expr_varref(struct expr_var *v) {
-  struct expr e = {(enum expr_type)0};
+  struct expr e = expr_init();
   e.type = OP_VAR;
   e.param.var.value = &v->value;
   return e;
@@ -501,7 +504,7 @@ static struct expr expr_varref(struct expr_var *v) {
 
 static struct expr expr_binary(enum expr_type type, struct expr a,
                                struct expr b) {
-  struct expr e = {(enum expr_type)0};
+  struct expr e = expr_init();
   e.type = type;
   vec_push(&e.param.op.args, a);
   vec_push(&e.param.op.args, b);
@@ -515,7 +518,7 @@ static inline void expr_copy(struct expr *dst, struct expr *src) {
   if (src->type == OP_FUNC) {
     dst->param.func.f = src->param.func.f;
     vec_foreach(&src->param.func.args, arg, i) {
-      struct expr tmp = {(enum expr_type)0};
+      struct expr tmp = expr_init();
       expr_copy(&tmp, &arg);
       vec_push(&dst->param.func.args, tmp);
     }
@@ -528,7 +531,7 @@ static inline void expr_copy(struct expr *dst, struct expr *src) {
     dst->param.var.value = src->param.var.value;
   } else {
     vec_foreach(&src->param.op.args, arg, i) {
-      struct expr tmp = {(enum expr_type)0};
+      struct expr tmp = expr_init();
       expr_copy(&tmp, &arg);
       vec_push(&dst->param.op.args, tmp);
     }
@@ -547,15 +550,15 @@ static struct expr *expr_create(const char *s, size_t len,
 
   struct expr *result = NULL;
 
-  vec_expr_t es = {0};
-  vec_str_t os = {0};
-  vec_arg_t as = {0};
+  vec_expr_t es = vec_init();
+  vec_str_t os = vec_init();
+  vec_arg_t as = vec_init();
 
   struct macro {
     char *name;
     vec_expr_t body;
   };
-  vec(struct macro) macros = {0};
+  vec(struct macro) macros = vec_init();
 
   int flags = EXPR_TDEFAULT;
   int paren = EXPR_PAREN_ALLOWED;
@@ -623,7 +626,7 @@ static struct expr *expr_create(const char *s, size_t len,
       if (paren == EXPR_PAREN_EXPECTED) {
         struct expr_string str = {"{", 1};
         vec_push(&os, str);
-        struct expr_arg arg = {vec_len(&os), vec_len(&es), {0}};
+        struct expr_arg arg = {vec_len(&os), vec_len(&es), vec_init()};
         vec_push(&as, arg);
       } else if (paren == EXPR_PAREN_ALLOWED) {
         struct expr_string str = {"(", 1};
@@ -709,7 +712,7 @@ static struct expr *expr_create(const char *s, size_t len,
             vec_free(&arg.args);
           } else {
             struct expr_func *f = expr_func(funcs, str.s, str.n);
-            struct expr bound_func = {(enum expr_type)0};
+            struct expr bound_func = expr_init();
             bound_func.type = OP_FUNC;
             bound_func.param.func.f = f;
             bound_func.param.func.args = arg.args;
@@ -730,7 +733,7 @@ static struct expr *expr_create(const char *s, size_t len,
       paren_next = EXPR_PAREN_FORBIDDEN;
     } else if (expr_op(tok, n, -1) != OP_UNKNOWN) {
       enum expr_type op = expr_op(tok, n, -1);
-      struct expr_string o2 = {0};
+      struct expr_string o2 = {NULL, 0};
       if (vec_len(&os) > 0) {
         o2 = vec_peek(&os);
       }

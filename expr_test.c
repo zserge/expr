@@ -18,8 +18,8 @@ typedef vec(int) test_vec_int_t;
 typedef vec(char *) test_vec_str_t;
 
 static void test_vector() {
-  test_vec_int_t ints = {0};
-  test_vec_str_t strings = {0};
+  test_vec_int_t ints = vec_init();
+  test_vec_str_t strings = vec_init();
 
   vec_push(&ints, 3);
   assert(vec_len(&ints) == 1);
