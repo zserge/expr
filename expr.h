@@ -30,7 +30,8 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
     int len;                                                                   \
     int cap;                                                                   \
   }
-#define vec_init() {NULL, 0, 0}
+#define vec_init()                                                             \
+  { NULL, 0, 0 }
 #define vec_len(v) ((v)->len)
 #define vec_unpack(v)                                                          \
   (char **)&(v)->buf, &(v)->len, &(v)->cap, sizeof(*(v)->buf)
@@ -117,7 +118,12 @@ struct expr {
   } param;
 };
 
-#define expr_init() {(enum expr_type) 0, {{0}}}
+#define expr_init()                                                            \
+  {                                                                            \
+    (enum expr_type)0, {                                                       \
+      { 0 }                                                                    \
+    }                                                                          \
+  }
 
 struct expr_string {
   const char *s;
