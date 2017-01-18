@@ -209,13 +209,29 @@ static enum expr_type expr_op(const char *s, size_t len, int unary) {
 }
 
 static float expr_parse_number(const char *s, size_t len) {
-  char *endp = NULL;
-  float num = strtof(s, &endp);
-  if (s + len - endp == 0) {
-    return num;
-  } else {
-    return NAN;
+  float num = 0;
+  unsigned int frac = 0;
+  unsigned int digits = 0;
+  for (unsigned int i = 0; i < len; i++) {
+    if (s[i] == '.' && frac == 0) {
+      frac++;
+      continue;
+    }
+    if (isdigit(s[i])) {
+      digits++;
+      if (frac > 0) {
+        frac++;
+      }
+      num = num * 10 + (s[i] - '0');
+    } else {
+      return NAN;
+    }
   }
+  while (frac > 1) {
+    num = num / 10;
+    frac--;
+  }
+  return (digits > 0 ? num : NAN);
 }
 
 /*
