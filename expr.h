@@ -1,6 +1,10 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ctype.h> /* for isspace */
 #include <limits.h>
 #include <math.h> /* for pow */
@@ -861,5 +865,9 @@ static void expr_destroy(struct expr *e, struct expr_var_list *vars) {
     }
   }
 }
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* EXPR_H */
