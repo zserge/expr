@@ -167,13 +167,23 @@ static void test_expr(char *s, float expected) {
     return;
   }
   float result = expr_eval(e);
+
+  char *p = (char *)malloc(strlen(s) + 1);
+  strncpy(p, s, strlen(s) + 1);
+  for (char *it = p; *it; it++) {
+    if (*it == '\n') {
+      *it = '\\';
+    }
+  }
+
   if (fabs(result - expected) > 0.00001f) {
-    printf("FAIL: %s: %f != %f\n", s, result, expected);
+    printf("FAIL: %s: %f != %f\n", p, result, expected);
     status = 1;
   } else {
-    printf("OK: %s == %f\n", s, expected);
+    printf("OK: %s == %f\n", p, expected);
   }
   expr_destroy(e, &vars);
+  free(p);
 }
 
 static void test_expr_error(char *s) {
@@ -290,6 +300,18 @@ static void test_name_collision() {
   test_expr("next=2,next(5)+next", 8);
 }
 
+static void test_auto_comma() {
+  test_expr("a=3\na+2\n", 5);
+  test_expr("a=3\n\n\na+2\n", 5);
+  test_expr("\n\na=\n3\n\n\na+2\n", 5);
+  test_expr("\n\n3\n\n", 3);
+  test_expr("\n\n\n\n", 0);
+  test_expr("3\n\n\n\n", 3);
+  test_expr("a=3\nb=4\na", 3);
+  test_expr("(\n2+3\n)\n", 5);
+  test_expr("a=\n3*\n(4+\n3)\na+\na\n", 42);
+}
+
 static void test_benchmark(const char *s) {
   struct timeval t;
   gettimeofday(&t, NULL);
@@ -365,6 +387,8 @@ int main() {
   test_funcs();
 
   test_name_collision();
+
+  test_auto_comma();
 
   test_bad_syntax();
 

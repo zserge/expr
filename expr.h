@@ -409,6 +409,7 @@ static float expr_eval(struct expr *e) {
 #define EXPR_TDEFAULT (EXPR_TOPEN | EXPR_TNUMBER | EXPR_TWORD)
 
 #define EXPR_UNARY (1 << 5)
+#define EXPR_COMMA (1 << 6)
 
 static int expr_next_token(const char *s, size_t len, int *flags) {
   unsigned int i = 0;
@@ -416,8 +417,19 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     return 0;
   }
   char c = s[0];
-  if (isspace(c)) {
-    while (i < len && isspace(s[i])) {
+  if (c == '\n') {
+    for (; i < len && isspace(s[i]); i++)
+      ;
+    if (*flags & EXPR_TOP) {
+      if (i == len || s[i] == ')') {
+        *flags = *flags & (~EXPR_COMMA);
+      } else {
+        *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN | EXPR_COMMA;
+      }
+    }
+    return i;
+  } else if (isspace(c)) {
+    while (i < len && isspace(s[i]) && s[i] != '\n') {
       i++;
     }
     return i;
@@ -615,6 +627,11 @@ static struct expr *expr_create(const char *s, size_t len,
         }
         n = 2;
       }
+    }
+    if (*tok == '\n' && (flags & EXPR_COMMA)) {
+      flags = flags & (~EXPR_COMMA);
+      n = 1;
+      tok = ",";
     }
     if (isspace(*tok)) {
       continue;
