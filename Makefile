@@ -1,32 +1,36 @@
--include config.mk
+CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Wextra
+LDFLAGS ?= -lm -O0 -g
 
-CC ?= clang
-COV ?= llvm-cov
-
-CFLAGS_COV ?= -fprofile-arcs -ftest-coverage
-LDFLAGS_COV ?= $(CFLAGS_COV)
-
-CFLAGS := -std=c99 -g -pedantic -Wall -Wextra -Wno-missing-field-initializers $(CFLAGS_COV)
-LDFLAGS := -lm -g $(LDFLAGS_COV)
+TESTBIN := expr_test
 
 all:
-	@echo make test - run tests
-	@echo make cov  - report test coverage
+	@echo make test      - run tests
+	@echo make llvm-cov  - report test coverage using LLVM (set LLVM_VER if needed)
+	@echo make gcov  - report test coverage (set GCC_VER if needed)
 
-test: expr_test
-	./expr_test
+test: $(TESTBIN)
+	./$(TESTBIN)
 
-expr_test: expr_test.o
+$(TESTBIN): expr_test.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 expr_test.o: expr_test.c expr.h expr_debug.h
 
-cov: test
-	$(COV) -gcda=expr_test.gcda -gcno=expr_test.gcno | sed -ne '0,/expr_test\.c/p' | grep "#####:"
+llvm-cov: CC := clang$(LLVM_VER)
+llvm-cov: CFLAGS += -fprofile-instr-generate -fcoverage-mapping
+llvm-cov: LDFLAGS += -fprofile-instr-generate -fcoverage-mapping
+llvm-cov: clean test
+	llvm-profdata$(LLVM_VER) merge -o $(TESTBIN).profdata default.profraw
+	llvm-cov$(LLVM_VER) show ./$(TESTBIN) -instr-profile=$(TESTBIN).profdata -name-regex='expr.*'
+
+gcov: CC := gcc$(GCC_VER)
+gcov: CFLAGS += -fprofile-arcs -ftest-coverage
+gcov: LDFLAGS += -fprofile-arcs -ftest-coverage
+gcov: clean test
+	gcov $(TESTBIN)
+	cat expr.h.gcov
 
 clean:
-	rm -f expr_test
-	rm -f *.o
-	rm -f *.gcda *.gcno
+	rm -f $(TESTBIN) *.o *.profraw *.profdata *.gcov *.gcda *.gcno
 
 .PHONY: clean all test cov
