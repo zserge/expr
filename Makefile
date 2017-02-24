@@ -27,10 +27,10 @@ gcov: CC := gcc$(GCC_VER)
 gcov: CFLAGS += -fprofile-arcs -ftest-coverage
 gcov: LDFLAGS += -fprofile-arcs -ftest-coverage
 gcov: clean test
-	gcov $(TESTBIN)
+	gcov$(GCC_VER) $(TESTBIN)
 	cat expr.h.gcov
 
 clean:
 	rm -f $(TESTBIN) *.o *.profraw *.profdata *.gcov *.gcda *.gcno
 
-.PHONY: clean all test cov
+.PHONY: clean all test gcov llvm-cov

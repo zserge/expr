@@ -83,6 +83,17 @@ make it easier to use:
 * isnan, isinf, fmodf, powf - math operations
 * strlen, strncmp, strncpy, strtof - tokenizing and parsing
 
+## Running tests
+
+To run all the tests and benchmarks do `make test`. This will be using your
+default compiler and will do no code coverage.
+
+To see the code coverage you may either do `make llvm-cov` or `make gcov`
+depending on whether you use GCC or LLVM/Clang.
+
+Since people may have different compiler versions, one may specify a version
+explicitly, e.g. `make llvm-cov LLVM_VER=-3.8` or `make gcov GCC_VER=-5`.
+
 ## License
 
 Code is distributed under MIT license, feel free to use it in your proprietary
