@@ -405,6 +405,8 @@ int main() {
   test_benchmark("$(sqr,$1*$1),5*5");
   test_benchmark("$(sqr,$1*$1),sqr(5)");
   test_benchmark("x=2+3*(x/(42+next(x))),x");
+  test_benchmark("a,b,c,d,e,d,e,f,g,h,i,j,k");
+  test_benchmark("$(a,1),$(b,2),$(c,3),$(d,4),5");
 
   return status;
 }
