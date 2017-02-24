@@ -159,10 +159,10 @@ static int expr_prec(enum expr_type a, enum expr_type b) {
 }
 
 #define isfirstvarchr(c)                                                       \
-  (((unsigned char)c >= '@' && c != '^' && c != '|' && c != '#') || c == '$')
+  (((unsigned char)c >= '@' && c != '^' && c != '|') || c == '$')
 #define isvarchr(c)                                                            \
   (((unsigned char)c >= '@' && c != '^' && c != '|') || c == '$' ||            \
-   (c >= '0' && c <= '9'))
+   c == '#' || (c >= '0' && c <= '9'))
 
 static struct {
   const char *s;

@@ -308,6 +308,7 @@ static void test_fancy_variable_names() {
   test_expr("六=6, 七=7, 六*七", 42);
   test_expr("ταῦ=1.618, 3*ταῦ", 3 * 1.618);
   test_expr("$(ταῦ, 1.618), 3*ταῦ()", 3 * 1.618);
+  test_expr("x#4=12, x#3=3, x#4+x#3", 15);
 }
 
 static void test_auto_comma() {
