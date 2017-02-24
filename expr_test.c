@@ -300,6 +300,16 @@ static void test_name_collision() {
   test_expr("next=2,next(5)+next", 8);
 }
 
+static void test_fancy_variable_names() {
+  test_expr("one=1", 1);
+  test_expr("один=1", 1);
+  test_expr("six=6, seven=7, six*seven", 42);
+  test_expr("шість=6, сім=7, шість*сім", 42);
+  test_expr("六=6, 七=7, 六*七", 42);
+  test_expr("ταῦ=1.618, 3*ταῦ", 3 * 1.618);
+  test_expr("$(ταῦ, 1.618), 3*ταῦ()", 3 * 1.618);
+}
+
 static void test_auto_comma() {
   test_expr("a=3\na+2\n", 5);
   test_expr("a=3\n\n\na+2\n", 5);
@@ -387,6 +397,7 @@ int main() {
   test_funcs();
 
   test_name_collision();
+  test_fancy_variable_names();
 
   test_auto_comma();
 
