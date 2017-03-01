@@ -373,7 +373,7 @@ static float expr_eval(struct expr *e) {
     return 0;
   case OP_LOGICAL_OR:
     n = expr_eval(&e->param.op.args.buf[0]);
-    if (n != 0) {
+    if (n != 0 && !isnan(n)) {
       return n;
     } else {
       n = expr_eval(&e->param.op.args.buf[1]);

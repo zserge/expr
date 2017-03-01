@@ -176,7 +176,8 @@ static void test_expr(char *s, float expected) {
     }
   }
 
-  if (fabs(result - expected) > 0.00001f) {
+  if ((isnan(result) && !isnan(expected)) ||
+      fabs(result - expected) > 0.00001f) {
     printf("FAIL: %s: %f != %f\n", p, result, expected);
     status = 1;
   } else {
@@ -258,6 +259,11 @@ static void test_logical() {
   test_expr("0||3", 3);
   test_expr("2||0", 2);
   test_expr("0||0", 0);
+
+  test_expr("1&&(3%0)", NAN);
+  test_expr("(3%0)&&1", NAN);
+  test_expr("1||(3%0)", 1);
+  test_expr("(3%0)||1", 1);
 }
 
 static void test_parens() {
