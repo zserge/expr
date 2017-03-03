@@ -32,6 +32,7 @@ expr_test
 # Test coverage
 *.gcda
 *.gcno
+*.gcov
 
 # Debug files
 *.dSYM/
