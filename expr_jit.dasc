@@ -1,0 +1,375 @@
+// clang-format off
+
+#define _GNU_SOURCE
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <errno.h>
+#include <sys/mman.h>
+
+#include <sys/time.h>
+
+#include "dynasm/dasm_proto.h"
+
+#if !JIT
+#error "JIT must be nonzero to use this header"
+#endif
+
+| .arch x64
+
+#include "dynasm/dasm_x86.h"
+#define JIT 1
+struct expr;
+static float (*expr_compile(struct expr *e, size_t *sz))();
+static void expr_jit_release(struct expr *e);
+
+#include "expr.h"
+
+static int expr_compile_dynasm(struct expr *e, dasm_State **Dst);
+
+static void expr_jit_release(struct expr *e) {
+  if (e->fn != NULL && e->jitsz > 0) {
+    munmap((void *) (uintptr_t) e->fn, e->jitsz);
+    e->fn = NULL;
+    e->jitsz = 0;
+  }
+}
+
+static float (*expr_compile(struct expr *e, size_t *sz))() {
+  int dasm_status;
+  size_t codesize;
+  dasm_State* d;
+  dasm_State** Dst = &d;
+  void* mem = NULL;
+  expr_jit_fn_t fn = NULL;
+
+  | .actionlist actions
+  | .globals glob
+  | .section code, imports
+
+  void *globals[glob_MAX];
+  dasm_init(&d, DASM_MAXSECTION);
+  dasm_setupglobal(&d, globals, glob_MAX);
+  dasm_setup(&d, actions);
+
+  | push rbp
+  | mov rbp, rsp
+
+  if (expr_compile_dynasm(e, &d) != 0) {
+    dasm_free(&d);
+    return NULL;
+  }
+
+  | mov rsp, rbp
+  | pop rbp
+  | ret
+
+  dasm_status = dasm_link(&d, &codesize);
+  if (dasm_status != DASM_S_OK) {
+    dasm_free(&d);
+    return NULL;
+  }
+  mem = mmap(NULL, codesize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (mem == MAP_FAILED) {
+    fprintf(stderr, "mmap(): %d\n", errno);
+    dasm_free(&d);
+    return NULL;
+  }
+  dasm_encode(&d, mem);
+  dasm_free(&d);
+  if (mprotect(mem, codesize, PROT_EXEC | PROT_READ) != 0) {
+    fprintf(stderr, "mprotect(): %d\n", errno);
+    return NULL;
+  }
+
+  *(void**)(&fn) = mem;
+  if (sz != NULL) {
+    *sz = codesize;
+  }
+  return fn;
+}
+
+static int expr_compile_dynasm(struct expr *e, dasm_State **Dst) {
+  |.define ONE, 0x3f800000
+
+  |.macro CALL_EXTERN_WITH_LABEL, target, label
+  |  .imports
+  |  ->label:
+  |  .dword  (uint32_t)(uintptr_t)target
+  |  .dword ((uint64_t)(uintptr_t)target >> 32)
+  |  .code
+  |  call qword [->label]
+  |.endmacro
+
+  |.macro CALL_EXTERN, target
+  |  CALL_EXTERN_WITH_LABEL target, __imp__..target
+  |.endmacro
+
+  |.macro MOVIMM, reg, value
+  |  push value 
+  |  movss reg, dword [rsp]
+  |  add rsp, aword*1
+  |.endmacro
+
+  |.macro COMPARE, J1, J2
+  |  ucomiss xmm1, xmm0
+  |  J1 >1
+  |  J2 >2
+  |1:
+  |  xorps xmm0, xmm0
+  |  jmp >3
+  |2:
+  |  MOVIMM xmm0, ONE
+  |3:
+  |.endmacro
+
+  |.macro PUSH_XMM0
+  |  sub rsp, 8
+  |  movss dword [rsp], xmm0
+  |.endmacro
+
+  |.macro POP_XMM0
+  |  movss xmm1, dword [rsp]
+  |  add rsp, 8
+  |.endmacro
+
+  switch (e->type) {
+    case OP_UNARY_MINUS:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | xorps xmm1, xmm1
+      | subss xmm1, xmm0
+      | movss xmm0, xmm1
+      break;
+    case OP_UNARY_LOGICAL_NOT:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | xorps xmm1, xmm1
+      | COMPARE jp, je
+      break;
+    case OP_UNARY_BITWISE_NOT:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | cvtss2si eax, xmm0
+      | not eax
+      | cvtsi2ss xmm0, eax
+      break;
+    case OP_POWER:
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | POP_XMM0
+      | CALL_EXTERN powf
+      break;
+    case OP_MULTIPLY:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0 
+      | mulss xmm0, xmm1
+      break;
+    case OP_DIVIDE:
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | POP_XMM0
+      | divss xmm0, xmm1
+      break;
+    case OP_REMAINDER:
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | POP_XMM0
+      | CALL_EXTERN fmodf
+      break;
+    case OP_PLUS:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | addss xmm0, xmm1
+      break;
+    case OP_MINUS:
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | POP_XMM0
+      | subss xmm0, xmm1
+      break;
+    case OP_SHL:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | CALL_EXTERN to_int
+      | push rax
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | CALL_EXTERN to_int
+      | mov ecx, eax
+      | pop rax
+      | shl eax, cl
+      | cvtsi2ss xmm0, eax
+      break;
+    case OP_SHR:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | CALL_EXTERN to_int
+      | push rax
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | CALL_EXTERN to_int
+      | mov ecx, eax
+      | pop rax
+      | shr eax, cl
+      | cvtsi2ss xmm0, eax
+      break;
+    case OP_LT:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | cmpss xmm1, xmm0, 1
+      | MOVIMM xmm0, ONE
+      | andps xmm0, xmm1
+      break;
+    case OP_LE:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | cmpss xmm1, xmm0, 2
+      | MOVIMM xmm0, ONE
+      | andps xmm0, xmm1
+      break;
+    case OP_GT:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | cmpss xmm0, xmm1, 1
+      | MOVIMM xmm1, ONE
+      | andps xmm0, xmm1
+      break;
+    case OP_GE:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | cmpss xmm0, xmm1, 2
+      | MOVIMM xmm1, ONE
+      | andps xmm0, xmm1
+      break;
+    case OP_EQ:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | COMPARE jp, je
+      break;
+    case OP_NE:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | PUSH_XMM0
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | POP_XMM0
+      | COMPARE jp, jne
+      break;
+    case OP_BITWISE_AND:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | CALL_EXTERN to_int
+      | push rax
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | CALL_EXTERN to_int
+      | mov ecx, eax
+      | pop rax
+      | and eax, ecx
+      | cvtsi2ss xmm0, eax
+      break;
+    case OP_BITWISE_OR:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | CALL_EXTERN to_int
+      | push rax
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | CALL_EXTERN to_int
+      | mov ecx, eax
+      | pop rax
+      | or eax, ecx
+      | cvtsi2ss xmm0, eax
+      break;
+    case OP_BITWISE_XOR:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | CALL_EXTERN to_int
+      | push rax
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | CALL_EXTERN to_int
+      | mov ecx, eax
+      | pop rax
+      | xor eax, ecx
+      | cvtsi2ss xmm0, eax
+      break;
+    case OP_LOGICAL_AND:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | xorps xmm2, xmm2
+      | ucomiss xmm0, xmm2
+      | jz >1
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | ucomiss xmm0, xmm2
+      | jnz >2
+      |1:
+      | xorps xmm0, xmm0
+      |2:
+      break;
+    case OP_LOGICAL_OR:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      | ucomiss xmm0, xmm0
+      | xorps xmm2, xmm2
+      | jp >1
+      | ucomiss xmm0, xmm2
+      | mov dl, 1
+      | setp al
+      | cmovne eax, edx
+      | test al, al
+      | jne >3
+      |1:
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      | movss xmm1, xmm0
+      | ucomiss xmm1, xmm2
+      | xorps xmm0, xmm0
+      | jp >2
+      | ucomiss xmm1, xmm0
+      | je >3
+      |2:
+      | movaps xmm0, xmm1
+      |3:
+      /*[>if (n != 0 && !isnan(n)) {<]*/
+      /*[>return n;<]*/
+      /*[>} else {<]*/
+      /*[>n = expr_eval(&e->param.op.args.buf[1]);<]*/
+      /*[>if (n != 0) {<]*/
+      /*[>return n;<]*/
+      /*[>}<]*/
+      /*[>}<]*/
+      /*[>return 0;<]*/
+      break;
+    case OP_ASSIGN:
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      if (vec_nth(&e->param.op.args, 0).type == OP_VAR) {
+        | mov64 rax, (uint64_t) e->param.op.args.buf[0].param.var.value
+        | movss dword [rax], xmm0
+      }
+      break;
+    case OP_COMMA:
+      expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
+      expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
+      break;
+    case OP_CONST:
+      | mov64 rax, (uint64_t) &e->param.num.value
+      | movss xmm0, dword [rax]
+      break;
+    case OP_VAR:
+      | mov64 rax, (uint64_t) (uintptr_t) e->param.var.value
+      | movss xmm0, dword [rax]
+      break;
+    case OP_FUNC:
+      | mov64 rdi, (uint64_t) e->param.func.f
+      | mov64 rsi, (uint64_t) &e->param.func.args
+      | mov64 rdx, (uint64_t) e->param.func.context
+      | mov64 rax, (uintptr_t) e->param.func.f->f
+      | call rax
+      break;
+    default:
+      return -1;
+  }
+  return 0;
+}
