@@ -332,15 +332,6 @@ static int expr_compile_dynasm(struct expr *e, dasm_State **Dst) {
       |2:
       | movaps xmm0, xmm1
       |3:
-      /*[>if (n != 0 && !isnan(n)) {<]*/
-      /*[>return n;<]*/
-      /*[>} else {<]*/
-      /*[>n = expr_eval(&e->param.op.args.buf[1]);<]*/
-      /*[>if (n != 0) {<]*/
-      /*[>return n;<]*/
-      /*[>}<]*/
-      /*[>}<]*/
-      /*[>return 0;<]*/
       break;
     case OP_ASSIGN:
       expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
