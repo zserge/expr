@@ -114,7 +114,7 @@ static void user_func_nop_cleanup(struct expr_func *f, void *c) {
   struct nop_context *nop = (struct nop_context *)c;
   free(nop->p);
 }
-static float user_func_nop(struct expr_func *f, vec_expr_t args, void *c) {
+static float user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)args;
   struct nop_context *nop = (struct nop_context *)c;
   if (f->ctxsz == 0) {
@@ -127,25 +127,25 @@ static float user_func_nop(struct expr_func *f, vec_expr_t args, void *c) {
   return 0;
 }
 
-static float user_func_add(struct expr_func *f, vec_expr_t args, void *c) {
+static float user_func_add(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  float a = expr_eval(&vec_nth(&args, 0));
-  float b = expr_eval(&vec_nth(&args, 1));
+  float a = expr_eval(&vec_nth(args, 0));
+  float b = expr_eval(&vec_nth(args, 1));
   return a + b;
 }
 
-static float user_func_next(struct expr_func *f, vec_expr_t args, void *c) {
+static float user_func_next(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  float a = expr_eval(&vec_nth(&args, 0));
+  float a = expr_eval(&vec_nth(args, 0));
   return a + 1;
 }
 
-static float user_func_print(struct expr_func *f, vec_expr_t args, void *c) {
+static float user_func_print(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
   int i;
   struct expr e;
   fprintf(stderr, ">> ");
-  vec_foreach(&args, e, i) { fprintf(stderr, "%f ", expr_eval(&e)); }
+  vec_foreach(args, e, i) { fprintf(stderr, "%f ", expr_eval(&e)); }
   fprintf(stderr, "\n");
   return 0;
 }
@@ -235,14 +235,25 @@ static void test_binary() {
   test_expr("(3%0)", NAN);
   test_expr("(3%0)|0", 0);
   test_expr("2**3", 8);
+  test_expr("9**(1/2)", 3);
   test_expr("1+2<<3", (1 + 2) << 3);
   test_expr("2<<3", 2 << 3);
   test_expr("12>>2", 12 >> 2);
-  test_expr("2<2", 3 < 2);
-  test_expr("2<=2", 2 <= 2);
-  test_expr("2==2", 2 == 2);
-  test_expr("2!=2", 2 != 2);
+  test_expr("1<2", 1 < 2);
+  test_expr("2<2", 2 < 2);
+  test_expr("3<2", 3 < 2);
+  test_expr("1>2", 1 > 2);
+  test_expr("2>2", 2 > 2);
   test_expr("3>2", 3 > 2);
+  test_expr("1==2", 1 == 2);
+  test_expr("2==2", 2 == 2);
+  test_expr("3==2", 3 == 2);
+  test_expr("3.2==3.1", 3.2f == 3.1f);
+  test_expr("1<=2", 1 <= 2);
+  test_expr("2<=2", 2 <= 2);
+  test_expr("3<=2", 3 <= 2);
+  test_expr("1>=2", 1 >= 2);
+  test_expr("2>=2", 2 >= 2);
   test_expr("3>=2", 3 >= 2);
   test_expr("123&42", 123 & 42);
   test_expr("123^42", 123 ^ 42);
@@ -291,8 +302,10 @@ static void test_comma() {
 
 static void test_funcs() {
   test_expr("add(1,2) + next(3)", 7);
+  test_expr("add(1,next(2))", 4);
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
   test_expr("nop()", 0);
+  test_expr("x=2,add(1, next(x))", 4);
   test_expr("$(zero), zero()", 0);
   test_expr("$(zero), zero(1, 2, 3)", 0);
   test_expr("$(one, 1), one()+one(1)+one(1, 2, 4)", 3);
@@ -423,6 +436,7 @@ int main() {
   test_benchmark("$(sqr,$1*$1),5*5");
   test_benchmark("$(sqr,$1*$1),sqr(5)");
   test_benchmark("x=2+3*(x/(42+next(x))),x");
+  test_benchmark("add(next(x), next(next(x)))");
   test_benchmark("a,b,c,d,e,d,e,f,g,h,i,j,k");
   test_benchmark("$(a,1),$(b,2),$(c,3),$(d,4),5");
 
