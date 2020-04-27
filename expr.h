@@ -13,6 +13,13 @@ extern "C" {
 #include <string.h>
 
 /*
+ * Expression number type
+ */
+#ifndef expr_num_t
+#define expr_num_t double
+#endif /* expr_num_t */
+
+/*
  * Simple expandable vector implementation
  */
 static int vec_expand(char **buf, int *length, int *cap, int memsz) {
@@ -100,16 +107,16 @@ static int prec[] = {0, 1, 1, 1, 2, 2, 2, 2, 3,  3,  4,  4, 5, 5,
 
 typedef vec(struct expr) vec_expr_t;
 typedef void (*exprfn_cleanup_t)(struct expr_func *f, void *context);
-typedef float (*exprfn_t)(struct expr_func *f, vec_expr_t *args, void *context);
+typedef expr_num_t (*exprfn_t)(struct expr_func *f, vec_expr_t *args, void *context);
 
 struct expr {
   enum expr_type type;
   union {
     struct {
-      float value;
+      expr_num_t value;
     } num;
     struct {
-      float *value;
+      expr_num_t *value;
     } var;
     struct {
       vec_expr_t args;
@@ -206,8 +213,8 @@ static enum expr_type expr_op(const char *s, size_t len, int unary) {
   return OP_UNKNOWN;
 }
 
-static float expr_parse_number(const char *s, size_t len) {
-  float num = 0;
+static expr_num_t expr_parse_number(const char *s, size_t len) {
+  expr_num_t num = 0;
   unsigned int frac = 0;
   unsigned int digits = 0;
   for (unsigned int i = 0; i < len; i++) {
@@ -256,7 +263,7 @@ static struct expr_func *expr_func(struct expr_func *funcs, const char *s,
  * Variables
  */
 struct expr_var {
-  float value;
+  expr_num_t value;
   struct expr_var *next;
   char name[];
 };
@@ -288,7 +295,7 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
   return v;
 }
 
-static int to_int(float x) {
+static int to_int(expr_num_t x) {
   if (isnan(x)) {
     return 0;
   } else if (isinf(x) != 0) {
@@ -298,8 +305,8 @@ static int to_int(float x) {
   }
 }
 
-static float expr_eval(struct expr *e) {
-  float n;
+static expr_num_t expr_eval(struct expr *e) {
+  expr_num_t n;
   switch (e->type) {
   case OP_UNARY_MINUS:
     return -(expr_eval(&e->param.op.args.buf[0]));
@@ -528,7 +535,7 @@ static int expr_bind(const char *s, size_t len, vec_expr_t *es) {
   return 0;
 }
 
-static struct expr expr_const(float value) {
+static struct expr expr_const(expr_num_t value) {
   struct expr e = expr_init();
   e.type = OP_CONST;
   e.param.num.value = value;
@@ -583,7 +590,7 @@ static void expr_destroy_args(struct expr *e);
 static struct expr *expr_create(const char *s, size_t len,
                                 struct expr_var_list *vars,
                                 struct expr_func *funcs) {
-  float num;
+  expr_num_t num;
   struct expr_var *v;
   const char *id = NULL;
   size_t idn = 0;

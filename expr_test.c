@@ -114,7 +114,7 @@ static void user_func_nop_cleanup(struct expr_func *f, void *c) {
   struct nop_context *nop = (struct nop_context *)c;
   free(nop->p);
 }
-static float user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
+static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)args;
   struct nop_context *nop = (struct nop_context *)c;
   if (f->ctxsz == 0) {
@@ -127,20 +127,20 @@ static float user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
   return 0;
 }
 
-static float user_func_add(struct expr_func *f, vec_expr_t *args, void *c) {
+static expr_num_t user_func_add(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  float a = expr_eval(&vec_nth(args, 0));
-  float b = expr_eval(&vec_nth(args, 1));
+  expr_num_t a = expr_eval(&vec_nth(args, 0));
+  expr_num_t b = expr_eval(&vec_nth(args, 1));
   return a + b;
 }
 
-static float user_func_next(struct expr_func *f, vec_expr_t *args, void *c) {
+static expr_num_t user_func_next(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  float a = expr_eval(&vec_nth(args, 0));
+  expr_num_t a = expr_eval(&vec_nth(args, 0));
   return a + 1;
 }
 
-static float user_func_print(struct expr_func *f, vec_expr_t *args, void *c) {
+static expr_num_t user_func_print(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
   int i;
   struct expr e;
@@ -158,7 +158,7 @@ static struct expr_func user_funcs[] = {
     {NULL, NULL, NULL, 0},
 };
 
-static void test_expr(char *s, float expected) {
+static void test_expr(char *s, expr_num_t expected) {
   struct expr_var_list vars = {0};
   struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
   if (e == NULL) {
@@ -166,7 +166,7 @@ static void test_expr(char *s, float expected) {
     status = 1;
     return;
   }
-  float result = expr_eval(e);
+  expr_num_t result = expr_eval(e);
 
   char *p = (char *)malloc(strlen(s) + 1);
   strncpy(p, s, strlen(s) + 1);
