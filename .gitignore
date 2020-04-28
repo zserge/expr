@@ -33,6 +33,8 @@ expr_test
 *.gcda
 *.gcno
 *.gcov
+*.profraw
+*.profdata
 
 # Debug files
 *.dSYM/

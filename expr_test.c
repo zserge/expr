@@ -17,7 +17,7 @@ int status = 0;
 typedef vec(int) test_vec_int_t;
 typedef vec(char *) test_vec_str_t;
 
-static void test_vector() {
+static void test_vector(void) {
   test_vec_int_t ints = vec_init();
   test_vec_str_t strings = vec_init();
 
@@ -43,7 +43,7 @@ static void test_vector() {
 /*
  * VARIABLES VECTOR TEST
  */
-static void test_vars() {
+static void test_vars(void) {
   struct expr_var_list vars = {0};
 
   struct expr_var *a = expr_var(&vars, "a", 1);
@@ -91,7 +91,7 @@ static int assert_tokens(char *s, char **expected) {
   }
 }
 
-static void test_tokenizer() {
+static void test_tokenizer(void) {
   char **TESTS[] = {
     (char *[]){"", NULL},
     (char *[]){"1", "1", NULL},
@@ -230,20 +230,20 @@ static void test_expr_error(char *s, int near, int error) {
   expr_destroy(e, &vars);
 }
 
-static void test_empty() {
+static void test_empty(void) {
   test_expr("", 0);
   test_expr("  ", 0);
   test_expr("  \t \n ", 0);
 }
 
-static void test_const() {
+static void test_const(void) {
   test_expr("1", 1);
   test_expr(" 1 ", 1);
   test_expr("12", 12);
   test_expr("12.3", 12.3);
 }
 
-static void test_unary() {
+static void test_unary(void) {
   test_expr("-1", -1);
   test_expr("--1", -(-1));
   test_expr("!0 ", !0);
@@ -251,7 +251,7 @@ static void test_unary() {
   test_expr("^3", ~3);
 }
 
-static void test_binary() {
+static void test_binary(void) {
   test_expr("1+2", 1 + 2);
   test_expr("10-2", 10 - 2);
   test_expr("2*3", 2 * 3);
@@ -295,7 +295,7 @@ static void test_binary() {
   test_expr("2**2**3", 256); /* 2^(2^3), not (2^2)^3 */
 }
 
-static void test_logical() {
+static void test_logical(void) {
   test_expr("2&&3", 3);
   test_expr("0&&3", 0);
   test_expr("3&&0", 0);
@@ -310,7 +310,7 @@ static void test_logical() {
   test_expr("(3%0)||1", 1);
 }
 
-static void test_parens() {
+static void test_parens(void) {
   test_expr("(1+2)*3", (1 + 2) * 3);
   test_expr("(1)", 1);
   test_expr("(2.4)", 2.4);
@@ -319,12 +319,12 @@ static void test_parens() {
   test_expr("(((3)))*(1+(2))", 9);
 }
 
-static void test_assign() {
+static void test_assign(void) {
   test_expr("x=5", 5);
   test_expr("x=y=3", 3);
 }
 
-static void test_comma() {
+static void test_comma(void) {
   test_expr("2,3,4", 4);
   test_expr("2+3,4*5", 4 * 5);
   test_expr("x=5, x", 5);
@@ -333,7 +333,7 @@ static void test_comma() {
   test_expr("x=5, x = x+1", 6);
 }
 
-static void test_funcs() {
+static void test_funcs(void) {
   test_expr("add(1,2) + next(3)", 7);
   test_expr("add(1,next(2))", 4);
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
@@ -347,12 +347,12 @@ static void test_funcs() {
   test_expr("$(triw, ($1 * 256) & 255), triw(0.1)+triw(0.7)+triw(0.2)", 255);
 }
 
-static void test_name_collision() {
+static void test_name_collision(void) {
   test_expr("next=5", 5);
   test_expr("next=2,next(5)+next", 8);
 }
 
-static void test_fancy_variable_names() {
+static void test_fancy_variable_names(void) {
   test_expr("one=1", 1);
   test_expr("один=1", 1);
   test_expr("six=6, seven=7, six*seven", 42);
@@ -363,7 +363,7 @@ static void test_fancy_variable_names() {
   test_expr("x#4=12, x#3=3, x#4+x#3", 15);
 }
 
-static void test_auto_comma() {
+static void test_auto_comma(void) {
   test_expr("a=3\na+2\n", 5);
   test_expr("a=3\n\n\na+2\n", 5);
   test_expr("\n\na=\n3\n\n\na+2\n", 5);
@@ -397,7 +397,7 @@ static void test_benchmark(const char *s) {
   printf("BENCH %40s:\t%f ns/op (%dM op/sec)\n", s, ns, (int) (1000 / ns));
 }
 
-static void test_bad_syntax() {
+static void test_bad_syntax(void) {
   test_expr_error("(", 1, EXPR_ERR_BAD_PARENS);
   test_expr_error(")", 1, EXPR_ERR_UNEXPECTED_PARENS);
   test_expr_error("()3", 2, EXPR_ERR_UNEXPECTED_NUMBER);
@@ -436,7 +436,7 @@ static void test_bad_syntax() {
   test_expr_error("a+10/((1+x)-b)-((5-(8/2))", 25, EXPR_ERR_BAD_PARENS);
 }
 
-static void test_calc() {
+static void test_calc(void) {
   const char *p = "2+3";
   expr_num_t result = expr_calc(p);
   expr_num_t expected = 5;
@@ -449,7 +449,7 @@ static void test_calc() {
   }
 }
 
-int main() {
+int main(void) {
   test_vector();
   test_vars();
 

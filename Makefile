@@ -1,4 +1,4 @@
-CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Wextra -Iinclude
+CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Werror -Wextra -Wno-unused-function -Wpedantic -Wstrict-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -Iinclude
 LDFLAGS ?= -lm -O0 -g
 
 INC_DIR := include
