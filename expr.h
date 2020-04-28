@@ -416,6 +416,21 @@ static expr_num_t expr_eval(struct expr *e) {
 #define EXPR_UNARY (1 << 5)
 #define EXPR_COMMA (1 << 6)
 
+#define EXPR_ERR_UNKNOWN (0)
+#define EXPR_ERR_UNEXPECTED_NUMBER (-1)
+#define EXPR_ERR_UNEXPECTED_WORD (-2)
+#define EXPR_ERR_UNEXPECTED_PARENS (-3)
+#define EXPR_ERR_MISS_EXPECTED_OPERAND (-4)
+#define EXPR_ERR_UNKNOWN_OPERATOR (-5)
+#define EXPR_ERR_INVALID_FUNC_NAME (-6)
+#define EXPR_ERR_BAD_CALL (-7)
+#define EXPR_ERR_BAD_PARENS (-8)
+#define EXPR_ERR_TOO_FEW_FUNC_ARGS (-9)
+#define EXPR_ERR_FIRST_ARG_IS_NOT_VAR (-10)
+#define EXPR_ERR_ALLOCATION_FAILED (-11)
+#define EXPR_ERR_BAD_VARIABLE_NAME (-12)
+#define EXPR_ERR_BAD_ASSIGNMENT (-13)
+
 static int expr_next_token(const char *s, size_t len, int *flags) {
   unsigned int i = 0;
   if (len == 0) {
@@ -444,7 +459,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     return i;
   } else if (isdigit(c)) {
     if ((*flags & EXPR_TNUMBER) == 0) {
-      return -1; // unexpected number
+      return EXPR_ERR_UNEXPECTED_NUMBER; // unexpected number
     }
     *flags = EXPR_TOP | EXPR_TCLOSE;
     while ((c == '.' || isdigit(c)) && i < len) {
@@ -454,7 +469,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     return i;
   } else if (isfirstvarchr(c)) {
     if ((*flags & EXPR_TWORD) == 0) {
-      return -2; // unexpected word
+      return EXPR_ERR_UNEXPECTED_WORD; // unexpected word
     }
     *flags = EXPR_TOP | EXPR_TOPEN | EXPR_TCLOSE;
     while ((isvarchr(c)) && i < len) {
@@ -468,13 +483,13 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     } else if (c == ')' && (*flags & EXPR_TCLOSE) != 0) {
       *flags = EXPR_TOP | EXPR_TCLOSE;
     } else {
-      return -3; // unexpected parenthesis
+      return EXPR_ERR_UNEXPECTED_PARENS; // unexpected parenthesis
     }
     return 1;
   } else {
     if ((*flags & EXPR_TOP) == 0) {
       if (expr_op(&c, 1, 1) == OP_UNKNOWN) {
-        return -4; // missing expected operand
+        return EXPR_ERR_MISS_EXPECTED_OPERAND; // missing expected operand
       }
       *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN | EXPR_UNARY;
       return 1;
@@ -490,7 +505,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
         c = s[i];
       }
       if (!found) {
-        return -5; // unknown operator
+        return EXPR_ERR_UNKNOWN_OPERATOR; // unknown operator
       }
       *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN;
       return i;
@@ -587,9 +602,10 @@ static inline void expr_copy(struct expr *dst, struct expr *src) {
 
 static void expr_destroy_args(struct expr *e);
 
-static struct expr *expr_create(const char *s, size_t len,
-                                struct expr_var_list *vars,
-                                struct expr_func *funcs) {
+static struct expr *expr_create2(const char *s, size_t len,
+                                 struct expr_var_list *vars,
+                                 struct expr_func *funcs,
+                                 int *near, int *error) {
   expr_num_t num;
   struct expr_var *v;
   const char *id = NULL;
@@ -609,13 +625,17 @@ static struct expr *expr_create(const char *s, size_t len,
 
   int flags = EXPR_TDEFAULT;
   int paren = EXPR_PAREN_ALLOWED;
+  *near = 0;
+  *error = EXPR_ERR_UNKNOWN;
   for (;;) {
     int n = expr_next_token(s, len, &flags);
     if (n == 0) {
       break;
     } else if (n < 0) {
+      *error = n;
       goto cleanup;
     }
+    *near += n;
     const char *tok = s;
     s = s + n;
     len = len - n;
@@ -667,6 +687,7 @@ static struct expr *expr_create(const char *s, size_t len,
           vec_push(&os, str);
           paren = EXPR_PAREN_EXPECTED;
         } else {
+          *error = EXPR_ERR_INVALID_FUNC_NAME;
           goto cleanup; /* invalid function name */
         }
       } else if ((v = expr_var(vars, id, idn)) != NULL) {
@@ -687,9 +708,11 @@ static struct expr *expr_create(const char *s, size_t len,
         struct expr_string str = {"(", 1};
         vec_push(&os, str);
       } else {
+        *error = EXPR_ERR_BAD_CALL;
         goto cleanup; // Bad call
       }
     } else if (paren == EXPR_PAREN_EXPECTED) {
+      *error = EXPR_ERR_BAD_CALL;
       goto cleanup; // Bad call
     } else if (n == 1 && *tok == ')') {
       int minlen = (vec_len(&as) > 0 ? vec_peek(&as).oslen : 0);
@@ -701,6 +724,7 @@ static struct expr *expr_create(const char *s, size_t len,
         }
       }
       if (vec_len(&os) == 0) {
+        *error = EXPR_ERR_BAD_PARENS;
         goto cleanup; // Bad parens
       }
       struct expr_string str = vec_pop(&os);
@@ -713,11 +737,13 @@ static struct expr *expr_create(const char *s, size_t len,
         if (str.n == 1 && str.s[0] == '$') {
           if (vec_len(&arg.args) < 1) {
             vec_free(&arg.args);
+            *error = EXPR_ERR_TOO_FEW_FUNC_ARGS;
             goto cleanup; /* too few arguments for $() function */
           }
           struct expr *u = &vec_nth(&arg.args, 0);
           if (u->type != OP_VAR) {
             vec_free(&arg.args);
+            *error = EXPR_ERR_FIRST_ARG_IS_NOT_VAR;
             goto cleanup; /* first argument is not a variable */
           }
           for (struct expr_var *v = vars->head; v; v = v->next) {
@@ -774,6 +800,7 @@ static struct expr *expr_create(const char *s, size_t len,
             if (f->ctxsz > 0) {
               void *p = calloc(1, f->ctxsz);
               if (p == NULL) {
+                *error = EXPR_ERR_ALLOCATION_FAILED;
                 goto cleanup; /* allocation failed */
               }
               bound_func.param.func.context = p;
@@ -824,6 +851,7 @@ static struct expr *expr_create(const char *s, size_t len,
         id = tok;
         idn = n;
       } else {
+        *error = EXPR_ERR_BAD_VARIABLE_NAME;
         goto cleanup; // Bad variable name, e.g. '2.3.4' or '4ever'
       }
     }
@@ -837,9 +865,11 @@ static struct expr *expr_create(const char *s, size_t len,
   while (vec_len(&os) > 0) {
     struct expr_string rest = vec_pop(&os);
     if (rest.n == 1 && (*rest.s == '(' || *rest.s == ')')) {
+      *error = EXPR_ERR_BAD_PARENS;
       goto cleanup; // Bad paren
     }
     if (expr_bind(rest.s, rest.n, &es) == -1) {
+      *error = (*rest.s == '=') ? EXPR_ERR_BAD_ASSIGNMENT : EXPR_ERR_BAD_PARENS;
       goto cleanup;
     }
   }
@@ -876,7 +906,19 @@ cleanup:
 
   /*vec_foreach(&os, o, i) {vec_free(&m.body);}*/
   vec_free(&os);
+
+  if (*near == 0) {
+    *near = 1;
+  }
   return result;
+}
+
+static struct expr *expr_create(const char *s, size_t len,
+                                struct expr_var_list *vars,
+                                struct expr_func *funcs) {
+  int near;
+  int error;
+  return expr_create2(s, len, vars, funcs, &near, &error);
 }
 
 static void expr_destroy_args(struct expr *e) {

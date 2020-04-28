@@ -187,11 +187,36 @@ static void test_expr(char *s, expr_num_t expected) {
   free(p);
 }
 
-static void test_expr_error(char *s) {
+static void test_expr_error(char *s, int near, int error) {
+  const char *ERRORS[] = {
+    "EXPR_ERR_UNKNOWN",
+    "EXPR_ERR_UNEXPECTED_NUMBER",
+    "EXPR_ERR_UNEXPECTED_WORD",
+    "EXPR_ERR_UNEXPECTED_PARENS",
+    "EXPR_ERR_MISS_EXPECTED_OPERAND",
+    "EXPR_ERR_UNKNOWN_OPERATOR",
+    "EXPR_ERR_INVALID_FUNC_NAME",
+    "EXPR_ERR_BAD_CALL",
+    "EXPR_ERR_BAD_PARENS",
+    "EXPR_ERR_TOO_FEW_FUNC_ARGS",
+    "EXPR_ERR_FIRST_ARG_IS_NOT_VAR",
+    "EXPR_ERR_ALLOCATION_FAILED",
+    "EXPR_ERR_BAD_VARIABLE_NAME",
+    "EXPR_ERR_BAD_ASSIGNMENT"
+  };
   struct expr_var_list vars = {0};
-  struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
+  int n, f;
+  struct expr *e = expr_create2(s, strlen(s), &vars, user_funcs, &n, &f);
   if (e != NULL) {
     printf("FAIL: %s should return error\n", s);
+    status = 1;
+  }
+  if (n != near) {
+    printf("FAIL: %s should return error near to %d, but returned at %d\n", s, near, n);
+    status = 1;
+  }
+  if (f != error) {
+    printf("FAIL: %s should return error %s, but returned %s\n", s, ERRORS[-error], ERRORS[-f]);
     status = 1;
   }
   expr_destroy(e, &vars);
@@ -365,39 +390,41 @@ static void test_benchmark(const char *s) {
 }
 
 static void test_bad_syntax() {
-  test_expr_error("(");
-  test_expr_error(")");
-  test_expr_error("()3");
-  test_expr_error("()x");
-  test_expr_error("0^+1");
-  test_expr_error("()\\");
-  test_expr_error("().");
-  test_expr_error("4ever");
-  test_expr_error("(2+3");
-  test_expr_error("(-2");
-  test_expr_error("*2");
-  test_expr_error("nop=");
-  test_expr_error("nop(");
-  test_expr_error("unknownfunc()");
-  test_expr_error("$(recurse, recurse()), recurse()");
-  test_expr_error("),");
-  test_expr_error("+(");
-  test_expr_error("2=3");
-  test_expr_error("2.3.4");
-  test_expr_error("1()");
-  test_expr_error("x()");
-  test_expr_error(",");
-  test_expr_error("1,,2");
-  test_expr_error("nop(,x)");
-  test_expr_error("nop(x=)>1");
-  test_expr_error("1 x");
-  test_expr_error("1++");
-  test_expr_error("foo((x))");
-  test_expr_error("nop(x))");
-  test_expr_error("nop((x)");
-  test_expr_error("$($())");
-  test_expr_error("$(1)");
-  test_expr_error("$()");
+  test_expr_error("(", 1, EXPR_ERR_BAD_PARENS);
+  test_expr_error(")", 1, EXPR_ERR_UNEXPECTED_PARENS);
+  test_expr_error("()3", 2, EXPR_ERR_UNEXPECTED_NUMBER);
+  test_expr_error("()x", 2, EXPR_ERR_UNEXPECTED_WORD);
+  test_expr_error("0^+1", 2, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("()\\", 2, EXPR_ERR_UNEXPECTED_WORD);
+  test_expr_error("().", 2, EXPR_ERR_UNKNOWN_OPERATOR);
+  test_expr_error("4ever", 1, EXPR_ERR_UNEXPECTED_WORD);
+  test_expr_error("(2+3", 4, EXPR_ERR_BAD_PARENS);
+  test_expr_error("(-2", 3, EXPR_ERR_BAD_PARENS);
+  test_expr_error("*2", 1, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("nop=", 4, EXPR_ERR_BAD_ASSIGNMENT);
+  test_expr_error("nop(", 4, EXPR_ERR_BAD_PARENS);
+  test_expr_error("unknownfunc()", 12, EXPR_ERR_INVALID_FUNC_NAME);
+  test_expr_error("$(recurse, recurse()), recurse()", 19, EXPR_ERR_INVALID_FUNC_NAME);
+  test_expr_error("),", 1, EXPR_ERR_UNEXPECTED_PARENS);
+  test_expr_error("+(", 1, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("2=3", 3, EXPR_ERR_BAD_ASSIGNMENT);
+  test_expr_error("2.3.4", 5, EXPR_ERR_BAD_VARIABLE_NAME);
+  test_expr_error("1()", 1, EXPR_ERR_UNEXPECTED_PARENS);
+  test_expr_error("x()", 2, EXPR_ERR_INVALID_FUNC_NAME);
+  test_expr_error(",", 1, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("1,,2", 2, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("nop(,x)", 4, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("nop(x=)>1", 6, EXPR_ERR_UNEXPECTED_PARENS);
+  test_expr_error("1 x", 2, EXPR_ERR_UNEXPECTED_WORD);
+  test_expr_error("1++", 2, EXPR_ERR_MISS_EXPECTED_OPERAND);
+  test_expr_error("foo((x))", 4, EXPR_ERR_INVALID_FUNC_NAME);
+  test_expr_error("nop(x))", 7, EXPR_ERR_BAD_PARENS);
+  test_expr_error("nop((x)", 7, EXPR_ERR_BAD_PARENS);
+  test_expr_error("$($())", 5, EXPR_ERR_TOO_FEW_FUNC_ARGS);
+  test_expr_error("$(1)", 4, EXPR_ERR_FIRST_ARG_IS_NOT_VAR);
+  test_expr_error("$()", 3, EXPR_ERR_TOO_FEW_FUNC_ARGS);
+  test_expr_error("n=", 2, EXPR_ERR_BAD_ASSIGNMENT);
+  test_expr_error("a+10/((1+x)-b)-((5-(8/2))", 25, EXPR_ERR_BAD_PARENS);
 }
 
 int main() {
