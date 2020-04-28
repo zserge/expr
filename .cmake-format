@@ -1,0 +1,10 @@
+# How wide to allow formatted cmake files.
+line_width = 80
+# How many spaces to tab for indent.
+tab_size = 2
+# What style line endings to use in the output.
+line_ending = 'unix'
+# Enable comment markup parsing and reflow.
+enable_markup = False
+# Specify the encoding of the output file.
+output_encoding = 'utf-8'
