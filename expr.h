@@ -20,13 +20,42 @@ extern "C" {
 #endif /* expr_num_t */
 
 /*
+ * Memory management
+ */
+#ifndef expr_alloc
+#define expr_alloc(sz) calloc(1, (sz))
+#endif /* expr_alloc */
+#ifndef expr_realloc
+#define expr_realloc realloc
+#endif /* expr_realloc */
+#ifndef expr_free
+#define expr_free free
+#endif /* expr_free */
+
+/*
+ * String handling
+ */
+#ifndef expr_strlen
+#define expr_strlen strlen
+#endif /* expr_strlen */
+#ifndef expr_strncmp
+#define expr_strncmp strncmp
+#endif /* expr_strncmp */
+#ifndef expr_strncpy
+#define expr_strncpy strncpy
+#endif /* expr_strncpy */
+#ifndef expr_snprintf
+#define expr_snprintf snprintf
+#endif /* expr_snprintf */
+
+/*
  * Math
  */
 #ifndef expr_pow
-#define expr_pow(x, y) pow((x), (y))
+#define expr_pow pow
 #endif /* expr_powf */
 #ifndef expr_fmod
-#define expr_fmod(x, y) fmod((x), (y))
+#define expr_fmod fmod
 #endif /* expr_fmodf */
 
 /*
@@ -36,7 +65,7 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
   if (*length + 1 > *cap) {
     void *ptr;
     int n = (*cap == 0) ? 1 : *cap << 1;
-    ptr = realloc(*buf, n * memsz);
+    ptr = expr_realloc(*buf, n * memsz);
     if (ptr == NULL) {
       return -1; /* allocation failed */
     }
@@ -61,7 +90,8 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
 #define vec_nth(v, i) (v)->buf[i]
 #define vec_peek(v) (v)->buf[(v)->len - 1]
 #define vec_pop(v) (v)->buf[--(v)->len]
-#define vec_free(v) (free((v)->buf), (v)->buf = NULL, (v)->len = (v)->cap = 0)
+#define vec_free(v)                                                            \
+  (expr_free((v)->buf), (v)->buf = NULL, (v)->len = (v)->cap = 0)
 #define vec_foreach(v, var, iter)                                              \
   if ((v)->len > 0)                                                            \
     for ((iter) = 0; (iter) < (v)->len && (((var) = (v)->buf[(iter)]), 1);     \
@@ -216,7 +246,7 @@ static struct {
 
 static enum expr_type expr_op(const char *s, size_t len, int unary) {
   for (unsigned int i = 0; i < sizeof(OPS) / sizeof(OPS[0]); i++) {
-    if (strlen(OPS[i].s) == len && strncmp(OPS[i].s, s, len) == 0 &&
+    if (expr_strlen(OPS[i].s) == len && expr_strncmp(OPS[i].s, s, len) == 0 &&
         (unary == -1 || expr_is_unary(OPS[i].op) == unary)) {
       return OPS[i].op;
     }
@@ -263,7 +293,7 @@ struct expr_func {
 static struct expr_func *expr_func(struct expr_func *funcs, const char *s,
                                    size_t len) {
   for (struct expr_func *f = funcs; f->name; f++) {
-    if (strlen(f->name) == len && strncmp(f->name, s, len) == 0) {
+    if (expr_strlen(f->name) == len && expr_strncmp(f->name, s, len) == 0) {
       return f;
     }
   }
@@ -290,17 +320,17 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
     return NULL;
   }
   for (v = vars->head; v; v = v->next) {
-    if (strlen(v->name) == len && strncmp(v->name, s, len) == 0) {
+    if (expr_strlen(v->name) == len && expr_strncmp(v->name, s, len) == 0) {
       return v;
     }
   }
-  v = (struct expr_var *) calloc(1, sizeof(struct expr_var) + len + 1);
+  v = expr_alloc(sizeof(struct expr_var) + len + 1);
   if (v == NULL) {
     return NULL; /* allocation failed */
   }
   v->next = vars->head;
   v->value = 0;
-  strncpy(v->name, s, len);
+  expr_strncpy(v->name, s, len);
   v->name[len] = '\0';
   vars->head = v;
   return v;
@@ -596,7 +626,7 @@ static inline void expr_copy(struct expr *dst, struct expr *src) {
       vec_push(&dst->param.func.args, tmp);
     }
     if (src->param.func.f->ctxsz > 0) {
-      dst->param.func.context = calloc(1, src->param.func.f->ctxsz);
+      dst->param.func.context = expr_alloc(src->param.func.f->ctxsz);
     }
   } else if (src->type == OP_CONST) {
     dst->param.num.value = src->param.num.value;
@@ -687,7 +717,8 @@ static struct expr *expr_create2(const char *s, size_t len,
         int has_macro = 0;
         struct macro m;
         vec_foreach(&macros, m, i) {
-          if (strlen(m.name) == idn && strncmp(m.name, id, idn) == 0) {
+          if (expr_strlen(m.name) == idn &&
+              expr_strncmp(m.name, id, idn) == 0) {
             has_macro = 1;
             break;
           }
@@ -770,8 +801,8 @@ static struct expr *expr_create2(const char *s, size_t len,
           int found = -1;
           struct macro m;
           vec_foreach(&macros, m, i) {
-            if (strlen(m.name) == (size_t) str.n &&
-                strncmp(m.name, str.s, str.n) == 0) {
+            if (expr_strlen(m.name) == (size_t) str.n &&
+                expr_strncmp(m.name, str.s, str.n) == 0) {
               found = i;
             }
           }
@@ -782,8 +813,9 @@ static struct expr *expr_create2(const char *s, size_t len,
             /* Assign macro parameters */
             for (int j = 0; j < vec_len(&arg.args); j++) {
               char varname[4];
-              snprintf(varname, sizeof(varname) - 1, "$%d", (j + 1));
-              struct expr_var *v = expr_var(vars, varname, strlen(varname));
+              expr_snprintf(varname, sizeof(varname) - 1, "$%d", (j + 1));
+              struct expr_var *v =
+                expr_var(vars, varname, expr_strlen(varname));
               struct expr ev = expr_varref(v);
               struct expr assign =
                 expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
@@ -809,7 +841,7 @@ static struct expr *expr_create2(const char *s, size_t len,
             bound_func.param.func.f = f;
             bound_func.param.func.args = arg.args;
             if (f->ctxsz > 0) {
-              void *p = calloc(1, f->ctxsz);
+              void *p = expr_alloc(f->ctxsz);
               if (p == NULL) {
                 *error = EXPR_ERR_ALLOCATION_FAILED;
                 goto cleanup; /* allocation failed */
@@ -885,7 +917,7 @@ static struct expr *expr_create2(const char *s, size_t len,
     }
   }
 
-  result = (struct expr *) calloc(1, sizeof(struct expr));
+  result = expr_alloc(sizeof(struct expr));
   if (result != NULL) {
     if (vec_len(&es) == 0) {
       result->type = OP_CONST;
@@ -950,7 +982,7 @@ static void expr_destroy_args(struct expr *e) {
       if (e->param.func.f->cleanup != NULL) {
         e->param.func.f->cleanup(e->param.func.f, e->param.func.context);
       }
-      free(e->param.func.context);
+      expr_free(e->param.func.context);
     }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
     vec_foreach(&e->param.op.args, arg, i) {
@@ -963,12 +995,12 @@ static void expr_destroy_args(struct expr *e) {
 static void expr_destroy(struct expr *e, struct expr_var_list *vars) {
   if (e != NULL) {
     expr_destroy_args(e);
-    free(e);
+    expr_free(e);
   }
   if (vars != NULL) {
     for (struct expr_var *v = vars->head; v;) {
       struct expr_var *next = v->next;
-      free(v);
+      expr_free(v);
       v = next;
     }
   }
