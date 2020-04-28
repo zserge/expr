@@ -197,8 +197,13 @@ struct expr {
   } param;
 };
 
+#ifdef _MSC_VER
+#define expr_init()                                                            \
+  { (enum expr_type) 0 }
+#else
 #define expr_init()                                                            \
   { .type = (enum expr_type) 0 }
+#endif
 
 struct expr_string {
   const char *s;
@@ -272,7 +277,8 @@ static struct {
 };
 
 static enum expr_type expr_op(const char *s, size_t len, int unary) {
-  for (unsigned int i = 0; i < sizeof(OPS) / sizeof(OPS[0]); i++) {
+  unsigned int i;
+  for (i = 0; i < sizeof(OPS) / sizeof(OPS[0]); i++) {
     if (expr_strlen(OPS[i].s) == len && expr_strncmp(OPS[i].s, s, len) == 0 &&
         (unary == -1 || expr_is_unary(OPS[i].op) == unary)) {
       return OPS[i].op;
@@ -285,7 +291,8 @@ static expr_num_t expr_parse_number(const char *s, size_t len) {
   expr_num_t num = 0;
   unsigned int frac = 0;
   unsigned int digits = 0;
-  for (unsigned int i = 0; i < len; i++) {
+  unsigned int i;
+  for (i = 0; i < len; i++) {
     if (s[i] == '.' && frac == 0) {
       frac++;
       continue;
@@ -319,7 +326,8 @@ struct expr_func {
 
 static struct expr_func *expr_func(struct expr_func *funcs, const char *s,
                                    size_t len) {
-  for (struct expr_func *f = funcs; f->name; f++) {
+  struct expr_func *f;
+  for (f = funcs; f->name; f++) {
     if (expr_strlen(f->name) == len && expr_strncmp(f->name, s, len) == 0) {
       return f;
     }
@@ -501,10 +509,11 @@ static expr_num_t expr_eval(struct expr *e) {
 
 static int expr_next_token(const char *s, size_t len, int *flags) {
   unsigned int i = 0;
+  char c;
   if (len == 0) {
     return 0;
   }
-  char c = s[0];
+  c = s[0];
   if (c == '#') {
     for (; i < len && s[i] != '\n'; i++)
       ;
@@ -595,25 +604,29 @@ static int expr_bind(const char *s, size_t len, vec_expr_t *es) {
     if (vec_len(es) < 1) {
       return -1;
     }
-    struct expr arg = vec_pop(es);
-    struct expr unary = expr_init();
-    unary.type = op;
-    vec_push(&unary.param.op.args, arg);
-    vec_push(es, unary);
+    {
+      struct expr arg = vec_pop(es);
+      struct expr unary = expr_init();
+      unary.type = op;
+      vec_push(&unary.param.op.args, arg);
+      vec_push(es, unary);
+    }
   } else {
     if (vec_len(es) < 2) {
       return -1;
     }
-    struct expr b = vec_pop(es);
-    struct expr a = vec_pop(es);
-    struct expr binary = expr_init();
-    binary.type = op;
-    if (op == OP_ASSIGN && a.type != OP_VAR) {
-      return -1; /* Bad assignment */
+    {
+      struct expr b = vec_pop(es);
+      struct expr a = vec_pop(es);
+      struct expr binary = expr_init();
+      binary.type = op;
+      if (op == OP_ASSIGN && a.type != OP_VAR) {
+        return -1; /* Bad assignment */
+      }
+      vec_push(&binary.param.op.args, a);
+      vec_push(&binary.param.op.args, b);
+      vec_push(es, binary);
     }
-    vec_push(&binary.param.op.args, a);
-    vec_push(&binary.param.op.args, b);
-    vec_push(es, binary);
   }
   return 0;
 }
@@ -641,7 +654,13 @@ static struct expr expr_binary(enum expr_type type, struct expr a,
   return e;
 }
 
+#ifdef _MSC_VER
+#define inline __inline
+#endif
 static inline void expr_copy(struct expr *dst, struct expr *src) {
+#ifdef _MSC_VER
+#undef inline
+#endif
   int i;
   struct expr arg;
   dst->type = src->type;
@@ -1025,7 +1044,8 @@ static void expr_destroy(struct expr *e, struct expr_var_list *vars) {
     expr_free(e);
   }
   if (vars != NULL) {
-    for (struct expr_var *v = vars->head; v;) {
+    struct expr_var *v;
+    for (v = vars->head; v;) {
       struct expr_var *next = v->next;
       expr_free(v);
       v = next;
