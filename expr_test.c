@@ -91,7 +91,7 @@ static int assert_tokens(char *s, char **expected) {
   }
 }
 
-static void test_tokizer() {
+static void test_tokenizer() {
   char **TESTS[] = {
     (char *[]){"", NULL},
     (char *[]){"1", "1", NULL},
@@ -436,11 +436,24 @@ static void test_bad_syntax() {
   test_expr_error("a+10/((1+x)-b)-((5-(8/2))", 25, EXPR_ERR_BAD_PARENS);
 }
 
+static void test_calc() {
+  const char *p = "2+3";
+  expr_num_t result = expr_calc(p);
+  expr_num_t expected = 5;
+  if ((isnan(result) && !isnan(expected)) ||
+      fabs(result - expected) > 0.00001f) {
+    printf("FAIL: %s: %f != %f\n", p, result, expected);
+    status = 1;
+  } else {
+    printf("OK: %s == %f\n", p, expected);
+  }
+}
+
 int main() {
   test_vector();
   test_vars();
 
-  test_tokizer();
+  test_tokenizer();
 
   test_empty();
   test_const();
@@ -458,6 +471,8 @@ int main() {
   test_auto_comma();
 
   test_bad_syntax();
+
+  test_calc();
 
   test_benchmark("5");
   test_benchmark("5+5+5+5+5+5+5+5+5+5");
