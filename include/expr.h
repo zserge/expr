@@ -819,86 +819,89 @@ static struct expr *expr_create2(const char *s, size_t len,
         *error = EXPR_ERR_BAD_PARENS;
         goto cleanup; // Bad parens
       }
-      struct expr_string str = vec_pop(&os);
-      if (str.n == 1 && *str.s == '{') {
-        str = vec_pop(&os);
-        struct expr_arg arg = vec_pop(&as);
-        if (vec_len(&es) > arg.eslen) {
-          vec_push(&arg.args, vec_pop(&es));
-        }
-        if (str.n == 1 && str.s[0] == '$') {
-          if (vec_len(&arg.args) < 1) {
-            vec_free(&arg.args);
-            *error = EXPR_ERR_TOO_FEW_FUNC_ARGS;
-            goto cleanup; /* too few arguments for $() function */
+      {
+        struct expr_string str = vec_pop(&os);
+        if (str.n == 1 && *str.s == '{') {
+          str = vec_pop(&os);
+          struct expr_arg arg = vec_pop(&as);
+          if (vec_len(&es) > arg.eslen) {
+            vec_push(&arg.args, vec_pop(&es));
           }
-          struct expr *u = &vec_nth(&arg.args, 0);
-          if (u->type != OP_VAR) {
-            vec_free(&arg.args);
-            *error = EXPR_ERR_FIRST_ARG_IS_NOT_VAR;
-            goto cleanup; /* first argument is not a variable */
-          }
-          for (struct expr_var *v = vars->head; v; v = v->next) {
-            if (&v->value == u->param.var.value) {
-              struct macro m = {v->name, arg.args};
-              vec_push(&macros, m);
-              break;
+          if (str.n == 1 && str.s[0] == '$') {
+            if (vec_len(&arg.args) < 1) {
+              vec_free(&arg.args);
+              *error = EXPR_ERR_TOO_FEW_FUNC_ARGS;
+              goto cleanup; /* too few arguments for $() function */
             }
-          }
-          vec_push(&es, expr_const(0));
-        } else {
-          int i = 0;
-          int found = -1;
-          struct macro m;
-          vec_foreach(&macros, m, i) {
-            if (expr_strlen(m.name) == (size_t) str.n &&
-                expr_strncmp(m.name, str.s, str.n) == 0) {
-              found = i;
+            struct expr *u = &vec_nth(&arg.args, 0);
+            if (u->type != OP_VAR) {
+              vec_free(&arg.args);
+              *error = EXPR_ERR_FIRST_ARG_IS_NOT_VAR;
+              goto cleanup; /* first argument is not a variable */
             }
-          }
-          if (found != -1) {
-            m = vec_nth(&macros, found);
-            struct expr root = expr_const(0);
-            struct expr *p = &root;
-            /* Assign macro parameters */
-            for (int j = 0; j < vec_len(&arg.args); j++) {
-              char varname[4];
-              expr_snprintf(varname, sizeof(varname) - 1, "$%d", (j + 1));
-              struct expr_var *v =
-                expr_var(vars, varname, expr_strlen(varname));
-              struct expr ev = expr_varref(v);
-              struct expr assign =
-                expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
-              *p = expr_binary(OP_COMMA, assign, expr_const(0));
-              p = &vec_nth(&p->param.op.args, 1);
-            }
-            /* Expand macro body */
-            for (int j = 1; j < vec_len(&m.body); j++) {
-              if (j < vec_len(&m.body) - 1) {
-                *p = expr_binary(OP_COMMA, expr_const(0), expr_const(0));
-                expr_copy(&vec_nth(&p->param.op.args, 0), &vec_nth(&m.body, j));
-              } else {
-                expr_copy(p, &vec_nth(&m.body, j));
+            for (struct expr_var *v = vars->head; v; v = v->next) {
+              if (&v->value == u->param.var.value) {
+                struct macro m = {v->name, arg.args};
+                vec_push(&macros, m);
+                break;
               }
-              p = &vec_nth(&p->param.op.args, 1);
             }
-            vec_push(&es, root);
-            vec_free(&arg.args);
+            vec_push(&es, expr_const(0));
           } else {
-            struct expr_func *f = expr_func(funcs, str.s, str.n);
-            struct expr bound_func = expr_init();
-            bound_func.type = OP_FUNC;
-            bound_func.param.func.f = f;
-            bound_func.param.func.args = arg.args;
-            if (f->ctxsz > 0) {
-              void *p = expr_alloc(f->ctxsz);
-              if (p == NULL) {
-                *error = EXPR_ERR_ALLOCATION_FAILED;
-                goto cleanup; /* allocation failed */
+            int i = 0;
+            int found = -1;
+            struct macro m;
+            vec_foreach(&macros, m, i) {
+              if (expr_strlen(m.name) == (size_t) str.n &&
+                  expr_strncmp(m.name, str.s, str.n) == 0) {
+                found = i;
               }
-              bound_func.param.func.context = p;
             }
-            vec_push(&es, bound_func);
+            if (found != -1) {
+              m = vec_nth(&macros, found);
+              struct expr root = expr_const(0);
+              struct expr *p = &root;
+              /* Assign macro parameters */
+              for (int j = 0; j < vec_len(&arg.args); j++) {
+                char varname[4];
+                expr_snprintf(varname, sizeof(varname) - 1, "$%d", (j + 1));
+                struct expr_var *v =
+                  expr_var(vars, varname, expr_strlen(varname));
+                struct expr ev = expr_varref(v);
+                struct expr assign =
+                  expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
+                *p = expr_binary(OP_COMMA, assign, expr_const(0));
+                p = &vec_nth(&p->param.op.args, 1);
+              }
+              /* Expand macro body */
+              for (int j = 1; j < vec_len(&m.body); j++) {
+                if (j < vec_len(&m.body) - 1) {
+                  *p = expr_binary(OP_COMMA, expr_const(0), expr_const(0));
+                  expr_copy(&vec_nth(&p->param.op.args, 0),
+                            &vec_nth(&m.body, j));
+                } else {
+                  expr_copy(p, &vec_nth(&m.body, j));
+                }
+                p = &vec_nth(&p->param.op.args, 1);
+              }
+              vec_push(&es, root);
+              vec_free(&arg.args);
+            } else {
+              struct expr_func *f = expr_func(funcs, str.s, str.n);
+              struct expr bound_func = expr_init();
+              bound_func.type = OP_FUNC;
+              bound_func.param.func.f = f;
+              bound_func.param.func.args = arg.args;
+              if (f->ctxsz > 0) {
+                void *p = expr_alloc(f->ctxsz);
+                if (p == NULL) {
+                  *error = EXPR_ERR_ALLOCATION_FAILED;
+                  goto cleanup; /* allocation failed */
+                }
+                bound_func.param.func.context = p;
+              }
+              vec_push(&es, bound_func);
+            }
           }
         }
       }
