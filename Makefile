@@ -1,6 +1,7 @@
-CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Wextra
+CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Wextra -Iinclude
 LDFLAGS ?= -lm -O0 -g
 
+INC_DIR := include
 TESTBIN := expr_test
 
 all:
@@ -14,7 +15,7 @@ test: $(TESTBIN)
 $(TESTBIN): expr_test.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
-expr_test.o: expr_test.c expr.h expr_debug.h
+expr_test.o: expr_test.c $(INC_DIR)/expr.h $(INC_DIR)/expr_debug.h
 
 llvm-cov: CC := clang$(LLVM_VER)
 llvm-cov: CFLAGS += -fprofile-instr-generate -fcoverage-mapping

@@ -43,3 +43,6 @@ config.mk
 
 # Build directory
 build/
+
+# VSCode directory
+.vscode
