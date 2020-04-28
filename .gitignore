@@ -40,3 +40,6 @@ expr_test
 
 # Makefile local config
 config.mk
+
+# Build directory
+build/
