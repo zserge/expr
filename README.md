@@ -101,6 +101,29 @@ depending on whether you use GCC or LLVM/Clang.
 Since people may have different compiler versions, one may specify a version
 explicitly, e.g. `make llvm-cov LLVM_VER=-3.8` or `make gcov GCC_VER=-5`.
 
+## Building with CMake
+
+To build all the examples, tests and benchmarks using [CMake](https://cmake.org), do:
+
+```bash
+mkdir build && cd build/
+cmake ..
+make
+```
+
+## Running PVS Studio analysis
+
+Download and install the PVS's command line tool [`how-to-use-pvs-studio-free`](https://github.com/viva64/how-to-use-pvs-studio-free) according its site instructions. After that, in the library root directory, perform the following commands:
+
+```bash
+how-to-use-pvs-studio-free -c 2 -m .
+mkdir build && cd build/
+cmake -DEXPR_PVS_STUDIO=ON ..
+make pvs_studio_analysis
+```
+
+The full PVS report will be generated in the `build/pvs_studio_fullhtml` directory.
+
 ## License
 
 Code is distributed under MIT license, feel free to use it in your proprietary
