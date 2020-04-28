@@ -858,23 +858,26 @@ static struct expr *expr_create2(const char *s, size_t len,
               }
             }
             if (found != -1) {
+              int j;
               m = vec_nth(&macros, found);
               struct expr root = expr_const(0);
               struct expr *p = &root;
               /* Assign macro parameters */
-              for (int j = 0; j < vec_len(&arg.args); j++) {
+              for (j = 0; j < vec_len(&arg.args); j++) {
                 char varname[4];
                 expr_snprintf(varname, sizeof(varname) - 1, "$%d", (j + 1));
-                struct expr_var *v =
-                  expr_var(vars, varname, expr_strlen(varname));
-                struct expr ev = expr_varref(v);
-                struct expr assign =
-                  expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
-                *p = expr_binary(OP_COMMA, assign, expr_const(0));
+                {
+                  struct expr_var *v =
+                    expr_var(vars, varname, expr_strlen(varname));
+                  struct expr ev = expr_varref(v);
+                  struct expr assign =
+                    expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
+                  *p = expr_binary(OP_COMMA, assign, expr_const(0));
+                }
                 p = &vec_nth(&p->param.op.args, 1);
               }
               /* Expand macro body */
-              for (int j = 1; j < vec_len(&m.body); j++) {
+              for (j = 1; j < vec_len(&m.body); j++) {
                 if (j < vec_len(&m.body) - 1) {
                   *p = expr_binary(OP_COMMA, expr_const(0), expr_const(0));
                   expr_copy(&vec_nth(&p->param.op.args, 0),
