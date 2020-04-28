@@ -20,6 +20,16 @@ extern "C" {
 #endif /* expr_num_t */
 
 /*
+ * Math
+ */
+#ifndef expr_pow
+#define expr_pow(x, y) pow((x), (y))
+#endif /* expr_powf */
+#ifndef expr_fmod
+#define expr_fmod(x, y) fmod((x), (y))
+#endif /* expr_fmodf */
+
+/*
  * Simple expandable vector implementation
  */
 static int vec_expand(char **buf, int *length, int *cap, int memsz) {
@@ -315,8 +325,8 @@ static expr_num_t expr_eval(struct expr *e) {
   case OP_UNARY_BITWISE_NOT:
     return ~(to_int(expr_eval(&e->param.op.args.buf[0])));
   case OP_POWER:
-    return powf(expr_eval(&e->param.op.args.buf[0]),
-                expr_eval(&e->param.op.args.buf[1]));
+    return expr_pow(expr_eval(&e->param.op.args.buf[0]),
+                    expr_eval(&e->param.op.args.buf[1]));
   case OP_MULTIPLY:
     return expr_eval(&e->param.op.args.buf[0]) *
            expr_eval(&e->param.op.args.buf[1]);
@@ -324,8 +334,8 @@ static expr_num_t expr_eval(struct expr *e) {
     return expr_eval(&e->param.op.args.buf[0]) /
            expr_eval(&e->param.op.args.buf[1]);
   case OP_REMAINDER:
-    return fmodf(expr_eval(&e->param.op.args.buf[0]),
-                 expr_eval(&e->param.op.args.buf[1]));
+    return expr_fmod(expr_eval(&e->param.op.args.buf[0]),
+                     expr_eval(&e->param.op.args.buf[1]));
   case OP_PLUS:
     return expr_eval(&e->param.op.args.buf[0]) +
            expr_eval(&e->param.op.args.buf[1]);
