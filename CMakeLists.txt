@@ -14,7 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 if(EXPR_PICKY_COMPILER)
   set(CMAKE_C_FLAGS
-      "${CMAKE_C_FLAGS} -Wall -Werror -Wextra -Wno-unused-function -Wpedantic -Wstrict-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline"
+      "${CMAKE_C_FLAGS} -Wall -Werror -Wextra -Wno-unused-function -Wpedantic -Wdeclaration-after-statement -Wstrict-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline"
   )
 endif()
 

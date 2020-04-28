@@ -2,10 +2,9 @@
 
 // Custom function that returns the sum of its two arguments
 static expr_num_t sum(struct expr_func *f, vec_expr_t *args, void *c) {
-  (void) f;
-  (void) c;
   expr_num_t a = expr_eval(&vec_nth(args, 0));
   expr_num_t b = expr_eval(&vec_nth(args, 1));
+  (void) f, (void) c;
   return a + b;
 }
 

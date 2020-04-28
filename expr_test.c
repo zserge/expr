@@ -14,6 +14,7 @@ int status = 0;
 /*
  * VECTOR TESTS
  */
+
 typedef vec(int) test_vec_int_t;
 typedef vec(char *) test_vec_str_t;
 
@@ -32,10 +33,12 @@ static void test_vector(void) {
   vec_push(&strings, "world");
   vec_push(&strings, "foo");
   assert(vec_len(&strings) == 3);
-  int i;
-  char *el;
-  vec_foreach(&strings, el, i) {
-    printf("%s %d\n", el, i);
+  {
+    int i;
+    char *el;
+    vec_foreach(&strings, el, i) {
+      printf("%s %d\n", el, i);
+    }
   }
   vec_free(&strings);
 }
@@ -43,6 +46,7 @@ static void test_vector(void) {
 /*
  * VARIABLES VECTOR TEST
  */
+
 static void test_vars(void) {
   struct expr_var_list vars = {0};
 
@@ -52,15 +56,18 @@ static void test_vars(void) {
   expr_var(&vars, "b", 1);
   expr_var(&vars, "ab", 2);
 
-  struct expr_var *again = expr_var(&vars, "a", 1);
-  assert(again == a);
-  assert(again->value == 4);
+  {
+    struct expr_var *again = expr_var(&vars, "a", 1);
+    assert(again == a);
+    assert(again->value == 4);
+  }
   expr_destroy(NULL, &vars);
 }
 
 /*
  * LEXER TESTS
  */
+
 static int assert_tokens(char *s, char **expected) {
   int len = strlen(s);
   int flags = EXPR_TDEFAULT;
@@ -92,6 +99,16 @@ static int assert_tokens(char *s, char **expected) {
 }
 
 static void test_tokenizer(void) {
+  unsigned int i;
+#ifdef _MSC_VER
+  char *T1[] = {"", NULL};
+  char *T2[] = {"1", "1", NULL};
+  char *T3[] = {"1+11", "1", "+", "11", NULL};
+  char *T4[] = {"1*11", "1", "*", "11", NULL};
+  char *T5[] = {"1**11", "1", "**", "11", NULL};
+  char *T6[] = {"1**-11", "1", "**", "-", "11", NULL};
+  char **TESTS[] = {T1, T2, T3, T4, T5, T6};
+#else
   char **TESTS[] = {
     (char *[]){"", NULL},
     (char *[]){"1", "1", NULL},
@@ -100,7 +117,8 @@ static void test_tokenizer(void) {
     (char *[]){"1**11", "1", "**", "11", NULL},
     (char *[]){"1**-11", "1", "**", "-", "11", NULL},
   };
-  for (unsigned int i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
+#endif
+  for (i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
     assert_tokens(TESTS[i][0], TESTS[i] + 1);
   }
 }
@@ -111,15 +129,17 @@ static void test_tokenizer(void) {
 struct nop_context {
   void *p;
 };
+
 static void user_func_nop_cleanup(struct expr_func *f, void *c) {
-  (void) f;
   struct nop_context *nop = (struct nop_context *) c;
+  (void) f;
   free(nop->p);
 }
+
 static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args,
                                 void *c) {
-  (void) args;
   struct nop_context *nop = (struct nop_context *) c;
+  (void) args;
   if (f->ctxsz == 0) {
     free(nop->p);
     return 0;
@@ -132,24 +152,24 @@ static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args,
 
 static expr_num_t user_func_add(struct expr_func *f, vec_expr_t *args,
                                 void *c) {
-  (void) f, (void) c;
   expr_num_t a = expr_eval(&vec_nth(args, 0));
   expr_num_t b = expr_eval(&vec_nth(args, 1));
+  (void) f, (void) c;
   return a + b;
 }
 
 static expr_num_t user_func_next(struct expr_func *f, vec_expr_t *args,
                                  void *c) {
-  (void) f, (void) c;
   expr_num_t a = expr_eval(&vec_nth(args, 0));
+  (void) f, (void) c;
   return a + 1;
 }
 
 static expr_num_t user_func_print(struct expr_func *f, vec_expr_t *args,
                                   void *c) {
-  (void) f, (void) c;
   int i;
   struct expr e;
+  (void) f, (void) c;
   fprintf(stderr, ">> ");
   vec_foreach(args, e, i) {
     fprintf(stderr, "%f ", expr_eval(&e));
@@ -174,42 +194,47 @@ static void test_expr(char *s, expr_num_t expected) {
     status = 1;
     return;
   }
-  expr_num_t result = expr_eval(e);
+  {
+    expr_num_t result = expr_eval(e);
 
-  char *p = (char *) malloc(strlen(s) + 1);
-  strncpy(p, s, strlen(s) + 1);
-  for (char *it = p; *it; it++) {
-    if (*it == '\n') {
-      *it = '\\';
+    char *p = (char *) malloc(strlen(s) + 1);
+    char *it;
+    strncpy(p, s, strlen(s) + 1);
+    for (it = p; *it; it++) {
+      if (*it == '\n') {
+        *it = '\\';
+      }
     }
-  }
 
-  if ((isnan(result) && !isnan(expected)) ||
-      fabs(result - expected) > 0.00001f) {
-    printf("FAIL: %s: %f != %f\n", p, result, expected);
-    status = 1;
-  } else {
-    printf("OK: %s == %f\n", p, expected);
+    if ((isnan(result) && !isnan(expected)) ||
+        fabs(result - expected) > 0.00001f) {
+      printf("FAIL: %s: %f != %f\n", p, result, expected);
+      status = 1;
+    } else {
+      printf("OK: %s == %f\n", p, expected);
+    }
+    expr_destroy(e, &vars);
+    free(p);
   }
-  expr_destroy(e, &vars);
-  free(p);
 }
 
 static void test_expr_error(char *s, int near, int error) {
-  const char *ERRORS[] = {"EXPR_ERR_UNKNOWN",
-                          "EXPR_ERR_UNEXPECTED_NUMBER",
-                          "EXPR_ERR_UNEXPECTED_WORD",
-                          "EXPR_ERR_UNEXPECTED_PARENS",
-                          "EXPR_ERR_MISS_EXPECTED_OPERAND",
-                          "EXPR_ERR_UNKNOWN_OPERATOR",
-                          "EXPR_ERR_INVALID_FUNC_NAME",
-                          "EXPR_ERR_BAD_CALL",
-                          "EXPR_ERR_BAD_PARENS",
-                          "EXPR_ERR_TOO_FEW_FUNC_ARGS",
-                          "EXPR_ERR_FIRST_ARG_IS_NOT_VAR",
-                          "EXPR_ERR_ALLOCATION_FAILED",
-                          "EXPR_ERR_BAD_VARIABLE_NAME",
-                          "EXPR_ERR_BAD_ASSIGNMENT"};
+  const char *ERRORS[] = {
+    "EXPR_ERR_UNKNOWN",
+    "EXPR_ERR_UNEXPECTED_NUMBER",
+    "EXPR_ERR_UNEXPECTED_WORD",
+    "EXPR_ERR_UNEXPECTED_PARENS",
+    "EXPR_ERR_MISS_EXPECTED_OPERAND",
+    "EXPR_ERR_UNKNOWN_OPERATOR",
+    "EXPR_ERR_INVALID_FUNC_NAME",
+    "EXPR_ERR_BAD_CALL",
+    "EXPR_ERR_BAD_PARENS",
+    "EXPR_ERR_TOO_FEW_FUNC_ARGS",
+    "EXPR_ERR_FIRST_ARG_IS_NOT_VAR",
+    "EXPR_ERR_ALLOCATION_FAILED",
+    "EXPR_ERR_BAD_VARIABLE_NAME",
+    "EXPR_ERR_BAD_ASSIGNMENT",
+  };
   struct expr_var_list vars = {0};
   int n, f;
   struct expr *e = expr_create2(s, strlen(s), &vars, user_funcs, &n, &f);
@@ -354,12 +379,16 @@ static void test_name_collision(void) {
 
 static void test_fancy_variable_names(void) {
   test_expr("one=1", 1);
+#ifndef _MSC_VER
   test_expr("один=1", 1);
+#endif
   test_expr("six=6, seven=7, six*seven", 42);
+#ifndef _MSC_VER
   test_expr("шість=6, сім=7, шість*сім", 42);
   test_expr("六=6, 七=7, 六*七", 42);
   test_expr("ταῦ=1.618, 3*ταῦ", 3 * 1.618);
   test_expr("$(ταῦ, 1.618), 3*ταῦ()", 3 * 1.618);
+#endif
   test_expr("x#4=12, x#3=3, x#4+x#3", 15);
 }
 
@@ -378,23 +407,27 @@ static void test_auto_comma(void) {
 static void test_benchmark(const char *s) {
   struct timeval t;
   gettimeofday(&t, NULL);
-  double start = t.tv_sec + t.tv_usec * 1e-6;
-  struct expr_var_list vars = {0};
-  struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
-  if (e == NULL) {
-    printf("FAIL: %s can't be compiled\n", s);
-    status = 1;
-    return;
+  {
+    double start = t.tv_sec + t.tv_usec * 1e-6;
+    double end, ns;
+    long N, i;
+    struct expr_var_list vars = {0};
+    struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
+    if (e == NULL) {
+      printf("FAIL: %s can't be compiled\n", s);
+      status = 1;
+      return;
+    }
+    N = 1000000L;
+    for (i = 0; i < N; i++) {
+      expr_eval(e);
+    }
+    gettimeofday(&t, NULL);
+    end = t.tv_sec + t.tv_usec * 1e-6;
+    expr_destroy(e, &vars);
+    ns = 1000000000 * (end - start) / N;
+    printf("BENCH %40s:\t%f ns/op (%dM op/sec)\n", s, ns, (int) (1000 / ns));
   }
-  long N = 1000000L;
-  for (long i = 0; i < N; i++) {
-    expr_eval(e);
-  }
-  gettimeofday(&t, NULL);
-  double end = t.tv_sec + t.tv_usec * 1e-6;
-  expr_destroy(e, &vars);
-  double ns = 1000000000 * (end - start) / N;
-  printf("BENCH %40s:\t%f ns/op (%dM op/sec)\n", s, ns, (int) (1000 / ns));
 }
 
 static void test_bad_syntax(void) {

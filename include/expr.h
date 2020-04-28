@@ -822,26 +822,34 @@ static struct expr *expr_create2(const char *s, size_t len,
       {
         struct expr_string str = vec_pop(&os);
         if (str.n == 1 && *str.s == '{') {
+          struct expr_arg arg;
           str = vec_pop(&os);
-          struct expr_arg arg = vec_pop(&as);
+          arg = vec_pop(&as);
           if (vec_len(&es) > arg.eslen) {
             vec_push(&arg.args, vec_pop(&es));
           }
           if (str.n == 1 && str.s[0] == '$') {
+            struct expr *u;
+            struct expr_var *v;
             if (vec_len(&arg.args) < 1) {
               vec_free(&arg.args);
               *error = EXPR_ERR_TOO_FEW_FUNC_ARGS;
               goto cleanup; /* too few arguments for $() function */
             }
-            struct expr *u = &vec_nth(&arg.args, 0);
+            u = &vec_nth(&arg.args, 0);
             if (u->type != OP_VAR) {
               vec_free(&arg.args);
               *error = EXPR_ERR_FIRST_ARG_IS_NOT_VAR;
               goto cleanup; /* first argument is not a variable */
             }
-            for (struct expr_var *v = vars->head; v; v = v->next) {
+            for (v = vars->head; v; v = v->next) {
               if (&v->value == u->param.var.value) {
+#ifdef _MSC_VER
+                struct macro m = {v->name};
+                m.body = arg.args;
+#else
                 struct macro m = {v->name, arg.args};
+#endif
                 vec_push(&macros, m);
                 break;
               }
@@ -858,10 +866,12 @@ static struct expr *expr_create2(const char *s, size_t len,
               }
             }
             if (found != -1) {
+              struct expr root;
+              struct expr *p;
               int j;
               m = vec_nth(&macros, found);
-              struct expr root = expr_const(0);
-              struct expr *p = &root;
+              root = expr_const(0);
+              p = &root;
               /* Assign macro parameters */
               for (j = 0; j < vec_len(&arg.args); j++) {
                 char varname[4];
