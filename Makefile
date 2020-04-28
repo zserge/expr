@@ -6,8 +6,8 @@ TESTBIN := expr_test
 
 all:
 	@echo make test     - run tests
-	@echo make llvm-cov - report test coverage using LLVM \(set LLVM_VER if needed\)
-	@echo make gcov     - report test coverage \(set GCC_VER if needed\)
+	@echo make llvm-cov - report test coverage using LLVM "(set LLVM_VER if needed)"
+	@echo make gcov     - report test coverage "(set GCC_VER if needed)"
 
 test: $(TESTBIN)
 	./$(TESTBIN)

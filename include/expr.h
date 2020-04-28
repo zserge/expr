@@ -12,6 +12,33 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+#include <float.h>
+
+#ifndef NAN
+static unsigned long __nan[2] = {0xffffffff, 0x7fffffff};
+#define NAN (*(double *) __nan)
+#endif /* NAN */
+
+#ifndef INFINITY
+static unsigned long __inf[2] = {0x0, 0x7ff00000};
+#define INFINITY (*(double *) __inf)
+#endif /* INFINITY */
+
+#define isnan(_x) _isnan(_x)
+#define isinf(_x) (!_finite(_x))
+
+#define snprintf _snprintf
+#else /* _MSC_VER */
+#ifndef NAN
+#define NAN (0.0 / 0.0)
+#endif /* NAN */
+
+#ifndef INFINITY
+#define INFINITY (1.0 / 0.0)
+#endif /* INFINITY */
+#endif /* _MSC_VER */
+
 /*
  * Expression number type
  */
