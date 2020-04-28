@@ -40,7 +40,7 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
     if (ptr == NULL) {
       return -1; /* allocation failed */
     }
-    *buf = (char *)ptr;
+    *buf = (char *) ptr;
     *cap = n;
   }
   return 0;
@@ -55,7 +55,7 @@ static int vec_expand(char **buf, int *length, int *cap, int memsz) {
   { NULL, 0, 0 }
 #define vec_len(v) ((v)->len)
 #define vec_unpack(v)                                                          \
-  (char **)&(v)->buf, &(v)->len, &(v)->cap, sizeof(*(v)->buf)
+  (char **) &(v)->buf, &(v)->len, &(v)->cap, sizeof(*(v)->buf)
 #define vec_push(v, val)                                                       \
   vec_expand(vec_unpack(v)) ? -1 : ((v)->buf[(v)->len++] = (val), 0)
 #define vec_nth(v, i) (v)->buf[i]
@@ -117,7 +117,8 @@ static int prec[] = {0, 1, 1, 1, 2, 2, 2, 2, 3,  3,  4,  4, 5, 5,
 
 typedef vec(struct expr) vec_expr_t;
 typedef void (*exprfn_cleanup_t)(struct expr_func *f, void *context);
-typedef expr_num_t (*exprfn_t)(struct expr_func *f, vec_expr_t *args, void *context);
+typedef expr_num_t (*exprfn_t)(struct expr_func *f, vec_expr_t *args,
+                               void *context);
 
 struct expr {
   enum expr_type type;
@@ -140,7 +141,7 @@ struct expr {
 };
 
 #define expr_init()                                                            \
-  { .type = (enum expr_type)0 }
+  { .type = (enum expr_type) 0 }
 
 struct expr_string {
   const char *s;
@@ -167,50 +168,50 @@ static int expr_is_binary(enum expr_type op) {
 
 static int expr_prec(enum expr_type a, enum expr_type b) {
   int left =
-      expr_is_binary(a) && a != OP_ASSIGN && a != OP_POWER && a != OP_COMMA;
+    expr_is_binary(a) && a != OP_ASSIGN && a != OP_POWER && a != OP_COMMA;
   return (left && prec[a] >= prec[b]) || (prec[a] > prec[b]);
 }
 
 #define isfirstvarchr(c)                                                       \
-  (((unsigned char)c >= '@' && c != '^' && c != '|') || c == '$')
+  (((unsigned char) c >= '@' && c != '^' && c != '|') || c == '$')
 #define isvarchr(c)                                                            \
-  (((unsigned char)c >= '@' && c != '^' && c != '|') || c == '$' ||            \
+  (((unsigned char) c >= '@' && c != '^' && c != '|') || c == '$' ||           \
    c == '#' || (c >= '0' && c <= '9'))
 
 static struct {
   const char *s;
   const enum expr_type op;
 } OPS[] = {
-    {"-u", OP_UNARY_MINUS},
-    {"!u", OP_UNARY_LOGICAL_NOT},
-    {"^u", OP_UNARY_BITWISE_NOT},
-    {"**", OP_POWER},
-    {"*", OP_MULTIPLY},
-    {"/", OP_DIVIDE},
-    {"%", OP_REMAINDER},
-    {"+", OP_PLUS},
-    {"-", OP_MINUS},
-    {"<<", OP_SHL},
-    {">>", OP_SHR},
-    {"<", OP_LT},
-    {"<=", OP_LE},
-    {">", OP_GT},
-    {">=", OP_GE},
-    {"==", OP_EQ},
-    {"!=", OP_NE},
-    {"&", OP_BITWISE_AND},
-    {"|", OP_BITWISE_OR},
-    {"^", OP_BITWISE_XOR},
-    {"&&", OP_LOGICAL_AND},
-    {"||", OP_LOGICAL_OR},
-    {"=", OP_ASSIGN},
-    {",", OP_COMMA},
+  {"-u", OP_UNARY_MINUS},
+  {"!u", OP_UNARY_LOGICAL_NOT},
+  {"^u", OP_UNARY_BITWISE_NOT},
+  {"**", OP_POWER},
+  {"*", OP_MULTIPLY},
+  {"/", OP_DIVIDE},
+  {"%", OP_REMAINDER},
+  {"+", OP_PLUS},
+  {"-", OP_MINUS},
+  {"<<", OP_SHL},
+  {">>", OP_SHR},
+  {"<", OP_LT},
+  {"<=", OP_LE},
+  {">", OP_GT},
+  {">=", OP_GE},
+  {"==", OP_EQ},
+  {"!=", OP_NE},
+  {"&", OP_BITWISE_AND},
+  {"|", OP_BITWISE_OR},
+  {"^", OP_BITWISE_XOR},
+  {"&&", OP_LOGICAL_AND},
+  {"||", OP_LOGICAL_OR},
+  {"=", OP_ASSIGN},
+  {",", OP_COMMA},
 
-    /* These are used by lexer and must be ignored by parser, so we put
+  /* These are used by lexer and must be ignored by parser, so we put
        them at the end */
-    {"-", OP_UNARY_MINUS},
-    {"!", OP_UNARY_LOGICAL_NOT},
-    {"^", OP_UNARY_BITWISE_NOT},
+  {"-", OP_UNARY_MINUS},
+  {"!", OP_UNARY_LOGICAL_NOT},
+  {"^", OP_UNARY_BITWISE_NOT},
 };
 
 static enum expr_type expr_op(const char *s, size_t len, int unary) {
@@ -293,7 +294,7 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
       return v;
     }
   }
-  v = (struct expr_var *)calloc(1, sizeof(struct expr_var) + len + 1);
+  v = (struct expr_var *) calloc(1, sizeof(struct expr_var) + len + 1);
   if (v == NULL) {
     return NULL; /* allocation failed */
   }
@@ -311,108 +312,108 @@ static int to_int(expr_num_t x) {
   } else if (isinf(x) != 0) {
     return INT_MAX * isinf(x);
   } else {
-    return (int)x;
+    return (int) x;
   }
 }
 
 static expr_num_t expr_eval(struct expr *e) {
   expr_num_t n;
   switch (e->type) {
-  case OP_UNARY_MINUS:
-    return -(expr_eval(&e->param.op.args.buf[0]));
-  case OP_UNARY_LOGICAL_NOT:
-    return !(expr_eval(&e->param.op.args.buf[0]));
-  case OP_UNARY_BITWISE_NOT:
-    return ~(to_int(expr_eval(&e->param.op.args.buf[0])));
-  case OP_POWER:
-    return expr_pow(expr_eval(&e->param.op.args.buf[0]),
-                    expr_eval(&e->param.op.args.buf[1]));
-  case OP_MULTIPLY:
-    return expr_eval(&e->param.op.args.buf[0]) *
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_DIVIDE:
-    return expr_eval(&e->param.op.args.buf[0]) /
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_REMAINDER:
-    return expr_fmod(expr_eval(&e->param.op.args.buf[0]),
-                     expr_eval(&e->param.op.args.buf[1]));
-  case OP_PLUS:
-    return expr_eval(&e->param.op.args.buf[0]) +
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_MINUS:
-    return expr_eval(&e->param.op.args.buf[0]) -
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_SHL:
-    return to_int(expr_eval(&e->param.op.args.buf[0]))
-           << to_int(expr_eval(&e->param.op.args.buf[1]));
-  case OP_SHR:
-    return to_int(expr_eval(&e->param.op.args.buf[0])) >>
-           to_int(expr_eval(&e->param.op.args.buf[1]));
-  case OP_LT:
-    return expr_eval(&e->param.op.args.buf[0]) <
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_LE:
-    return expr_eval(&e->param.op.args.buf[0]) <=
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_GT:
-    return expr_eval(&e->param.op.args.buf[0]) >
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_GE:
-    return expr_eval(&e->param.op.args.buf[0]) >=
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_EQ:
-    return expr_eval(&e->param.op.args.buf[0]) ==
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_NE:
-    return expr_eval(&e->param.op.args.buf[0]) !=
-           expr_eval(&e->param.op.args.buf[1]);
-  case OP_BITWISE_AND:
-    return to_int(expr_eval(&e->param.op.args.buf[0])) &
-           to_int(expr_eval(&e->param.op.args.buf[1]));
-  case OP_BITWISE_OR:
-    return to_int(expr_eval(&e->param.op.args.buf[0])) |
-           to_int(expr_eval(&e->param.op.args.buf[1]));
-  case OP_BITWISE_XOR:
-    return to_int(expr_eval(&e->param.op.args.buf[0])) ^
-           to_int(expr_eval(&e->param.op.args.buf[1]));
-  case OP_LOGICAL_AND:
-    n = expr_eval(&e->param.op.args.buf[0]);
-    if (n != 0) {
-      n = expr_eval(&e->param.op.args.buf[1]);
+    case OP_UNARY_MINUS:
+      return -(expr_eval(&e->param.op.args.buf[0]));
+    case OP_UNARY_LOGICAL_NOT:
+      return !(expr_eval(&e->param.op.args.buf[0]));
+    case OP_UNARY_BITWISE_NOT:
+      return ~(to_int(expr_eval(&e->param.op.args.buf[0])));
+    case OP_POWER:
+      return expr_pow(expr_eval(&e->param.op.args.buf[0]),
+                      expr_eval(&e->param.op.args.buf[1]));
+    case OP_MULTIPLY:
+      return expr_eval(&e->param.op.args.buf[0]) *
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_DIVIDE:
+      return expr_eval(&e->param.op.args.buf[0]) /
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_REMAINDER:
+      return expr_fmod(expr_eval(&e->param.op.args.buf[0]),
+                       expr_eval(&e->param.op.args.buf[1]));
+    case OP_PLUS:
+      return expr_eval(&e->param.op.args.buf[0]) +
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_MINUS:
+      return expr_eval(&e->param.op.args.buf[0]) -
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_SHL:
+      return to_int(expr_eval(&e->param.op.args.buf[0]))
+             << to_int(expr_eval(&e->param.op.args.buf[1]));
+    case OP_SHR:
+      return to_int(expr_eval(&e->param.op.args.buf[0])) >>
+             to_int(expr_eval(&e->param.op.args.buf[1]));
+    case OP_LT:
+      return expr_eval(&e->param.op.args.buf[0]) <
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_LE:
+      return expr_eval(&e->param.op.args.buf[0]) <=
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_GT:
+      return expr_eval(&e->param.op.args.buf[0]) >
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_GE:
+      return expr_eval(&e->param.op.args.buf[0]) >=
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_EQ:
+      return expr_eval(&e->param.op.args.buf[0]) ==
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_NE:
+      return expr_eval(&e->param.op.args.buf[0]) !=
+             expr_eval(&e->param.op.args.buf[1]);
+    case OP_BITWISE_AND:
+      return to_int(expr_eval(&e->param.op.args.buf[0])) &
+             to_int(expr_eval(&e->param.op.args.buf[1]));
+    case OP_BITWISE_OR:
+      return to_int(expr_eval(&e->param.op.args.buf[0])) |
+             to_int(expr_eval(&e->param.op.args.buf[1]));
+    case OP_BITWISE_XOR:
+      return to_int(expr_eval(&e->param.op.args.buf[0])) ^
+             to_int(expr_eval(&e->param.op.args.buf[1]));
+    case OP_LOGICAL_AND:
+      n = expr_eval(&e->param.op.args.buf[0]);
       if (n != 0) {
-        return n;
+        n = expr_eval(&e->param.op.args.buf[1]);
+        if (n != 0) {
+          return n;
+        }
       }
-    }
-    return 0;
-  case OP_LOGICAL_OR:
-    n = expr_eval(&e->param.op.args.buf[0]);
-    if (n != 0 && !isnan(n)) {
+      return 0;
+    case OP_LOGICAL_OR:
+      n = expr_eval(&e->param.op.args.buf[0]);
+      if (n != 0 && !isnan(n)) {
+        return n;
+      } else {
+        n = expr_eval(&e->param.op.args.buf[1]);
+        if (n != 0) {
+          return n;
+        }
+      }
+      return 0;
+    case OP_ASSIGN:
+      n = expr_eval(&e->param.op.args.buf[1]);
+      if (vec_nth(&e->param.op.args, 0).type == OP_VAR) {
+        *e->param.op.args.buf[0].param.var.value = n;
+      }
       return n;
-    } else {
-      n = expr_eval(&e->param.op.args.buf[1]);
-      if (n != 0) {
-        return n;
-      }
-    }
-    return 0;
-  case OP_ASSIGN:
-    n = expr_eval(&e->param.op.args.buf[1]);
-    if (vec_nth(&e->param.op.args, 0).type == OP_VAR) {
-      *e->param.op.args.buf[0].param.var.value = n;
-    }
-    return n;
-  case OP_COMMA:
-    expr_eval(&e->param.op.args.buf[0]);
-    return expr_eval(&e->param.op.args.buf[1]);
-  case OP_CONST:
-    return e->param.num.value;
-  case OP_VAR:
-    return *e->param.var.value;
-  case OP_FUNC:
-    return e->param.func.f->f(e->param.func.f, &e->param.func.args,
-                              e->param.func.context);
-  default:
-    return NAN;
+    case OP_COMMA:
+      expr_eval(&e->param.op.args.buf[0]);
+      return expr_eval(&e->param.op.args.buf[1]);
+    case OP_CONST:
+      return e->param.num.value;
+    case OP_VAR:
+      return *e->param.var.value;
+    case OP_FUNC:
+      return e->param.func.f->f(e->param.func.f, &e->param.func.args,
+                                e->param.func.context);
+    default:
+      return NAN;
   }
 }
 
@@ -614,8 +615,8 @@ static void expr_destroy_args(struct expr *e);
 
 static struct expr *expr_create2(const char *s, size_t len,
                                  struct expr_var_list *vars,
-                                 struct expr_func *funcs,
-                                 int *near, int *error) {
+                                 struct expr_func *funcs, int *near,
+                                 int *error) {
   expr_num_t num;
   struct expr_var *v;
   const char *id = NULL;
@@ -655,17 +656,17 @@ static struct expr *expr_create2(const char *s, size_t len,
     if (flags & EXPR_UNARY) {
       if (n == 1) {
         switch (*tok) {
-        case '-':
-          tok = "-u";
-          break;
-        case '^':
-          tok = "^u";
-          break;
-        case '!':
-          tok = "!u";
-          break;
-        default:
-          goto cleanup;
+          case '-':
+            tok = "-u";
+            break;
+          case '^':
+            tok = "^u";
+            break;
+          case '!':
+            tok = "!u";
+            break;
+          default:
+            goto cleanup;
         }
         n = 2;
       }
@@ -693,7 +694,7 @@ static struct expr *expr_create2(const char *s, size_t len,
         }
         if ((idn == 1 && id[0] == '$') || has_macro ||
             expr_func(funcs, id, idn) != NULL) {
-          struct expr_string str = {id, (int)idn};
+          struct expr_string str = {id, (int) idn};
           vec_push(&os, str);
           paren = EXPR_PAREN_EXPECTED;
         } else {
@@ -769,7 +770,7 @@ static struct expr *expr_create2(const char *s, size_t len,
           int found = -1;
           struct macro m;
           vec_foreach(&macros, m, i) {
-            if (strlen(m.name) == (size_t)str.n &&
+            if (strlen(m.name) == (size_t) str.n &&
                 strncmp(m.name, str.s, str.n) == 0) {
               found = i;
             }
@@ -785,7 +786,7 @@ static struct expr *expr_create2(const char *s, size_t len,
               struct expr_var *v = expr_var(vars, varname, strlen(varname));
               struct expr ev = expr_varref(v);
               struct expr assign =
-                  expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
+                expr_binary(OP_ASSIGN, ev, vec_nth(&arg.args, j));
               *p = expr_binary(OP_COMMA, assign, expr_const(0));
               p = &vec_nth(&p->param.op.args, 1);
             }
@@ -848,7 +849,7 @@ static struct expr *expr_create2(const char *s, size_t len,
         if (expr_bind(o2.s, o2.n, &es) == -1) {
           goto cleanup;
         }
-        (void)vec_pop(&os);
+        (void) vec_pop(&os);
         if (vec_len(&os) > 0) {
           o2 = vec_peek(&os);
         } else {
@@ -884,7 +885,7 @@ static struct expr *expr_create2(const char *s, size_t len,
     }
   }
 
-  result = (struct expr *)calloc(1, sizeof(struct expr));
+  result = (struct expr *) calloc(1, sizeof(struct expr));
   if (result != NULL) {
     if (vec_len(&es) == 0) {
       result->type = OP_CONST;
@@ -900,16 +901,22 @@ static struct expr *expr_create2(const char *s, size_t len,
 cleanup:
   vec_foreach(&macros, m, i) {
     struct expr e;
-    vec_foreach(&m.body, e, j) { expr_destroy_args(&e); }
+    vec_foreach(&m.body, e, j) {
+      expr_destroy_args(&e);
+    }
     vec_free(&m.body);
   }
   vec_free(&macros);
 
-  vec_foreach(&es, e, i) { expr_destroy_args(&e); }
+  vec_foreach(&es, e, i) {
+    expr_destroy_args(&e);
+  }
   vec_free(&es);
 
   vec_foreach(&as, a, i) {
-    vec_foreach(&a.args, e, j) { expr_destroy_args(&e); }
+    vec_foreach(&a.args, e, j) {
+      expr_destroy_args(&e);
+    }
     vec_free(&a.args);
   }
   vec_free(&as);
@@ -935,7 +942,9 @@ static void expr_destroy_args(struct expr *e) {
   int i;
   struct expr arg;
   if (e->type == OP_FUNC) {
-    vec_foreach(&e->param.func.args, arg, i) { expr_destroy_args(&arg); }
+    vec_foreach(&e->param.func.args, arg, i) {
+      expr_destroy_args(&arg);
+    }
     vec_free(&e->param.func.args);
     if (e->param.func.context != NULL) {
       if (e->param.func.f->cleanup != NULL) {
@@ -944,7 +953,9 @@ static void expr_destroy_args(struct expr *e) {
       free(e->param.func.context);
     }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
-    vec_foreach(&e->param.op.args, arg, i) { expr_destroy_args(&arg); }
+    vec_foreach(&e->param.op.args, arg, i) {
+      expr_destroy_args(&arg);
+    }
     vec_free(&e->param.op.args);
   }
 }

@@ -34,7 +34,9 @@ static void test_vector() {
   assert(vec_len(&strings) == 3);
   int i;
   char *el;
-  vec_foreach(&strings, el, i) { printf("%s %d\n", el, i); }
+  vec_foreach(&strings, el, i) {
+    printf("%s %d\n", el, i);
+  }
   vec_free(&strings);
 }
 
@@ -91,12 +93,12 @@ static int assert_tokens(char *s, char **expected) {
 
 static void test_tokizer() {
   char **TESTS[] = {
-      (char *[]){"", NULL},
-      (char *[]){"1", "1", NULL},
-      (char *[]){"1+11", "1", "+", "11", NULL},
-      (char *[]){"1*11", "1", "*", "11", NULL},
-      (char *[]){"1**11", "1", "**", "11", NULL},
-      (char *[]){"1**-11", "1", "**", "-", "11", NULL},
+    (char *[]){"", NULL},
+    (char *[]){"1", "1", NULL},
+    (char *[]){"1+11", "1", "+", "11", NULL},
+    (char *[]){"1*11", "1", "*", "11", NULL},
+    (char *[]){"1**11", "1", "**", "11", NULL},
+    (char *[]){"1**-11", "1", "**", "-", "11", NULL},
   };
   for (unsigned int i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
     assert_tokens(TESTS[i][0], TESTS[i] + 1);
@@ -110,13 +112,14 @@ struct nop_context {
   void *p;
 };
 static void user_func_nop_cleanup(struct expr_func *f, void *c) {
-  (void)f;
-  struct nop_context *nop = (struct nop_context *)c;
+  (void) f;
+  struct nop_context *nop = (struct nop_context *) c;
   free(nop->p);
 }
-static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
-  (void)args;
-  struct nop_context *nop = (struct nop_context *)c;
+static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args,
+                                void *c) {
+  (void) args;
+  struct nop_context *nop = (struct nop_context *) c;
   if (f->ctxsz == 0) {
     free(nop->p);
     return 0;
@@ -127,35 +130,40 @@ static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) 
   return 0;
 }
 
-static expr_num_t user_func_add(struct expr_func *f, vec_expr_t *args, void *c) {
-  (void)f, (void)c;
+static expr_num_t user_func_add(struct expr_func *f, vec_expr_t *args,
+                                void *c) {
+  (void) f, (void) c;
   expr_num_t a = expr_eval(&vec_nth(args, 0));
   expr_num_t b = expr_eval(&vec_nth(args, 1));
   return a + b;
 }
 
-static expr_num_t user_func_next(struct expr_func *f, vec_expr_t *args, void *c) {
-  (void)f, (void)c;
+static expr_num_t user_func_next(struct expr_func *f, vec_expr_t *args,
+                                 void *c) {
+  (void) f, (void) c;
   expr_num_t a = expr_eval(&vec_nth(args, 0));
   return a + 1;
 }
 
-static expr_num_t user_func_print(struct expr_func *f, vec_expr_t *args, void *c) {
-  (void)f, (void)c;
+static expr_num_t user_func_print(struct expr_func *f, vec_expr_t *args,
+                                  void *c) {
+  (void) f, (void) c;
   int i;
   struct expr e;
   fprintf(stderr, ">> ");
-  vec_foreach(args, e, i) { fprintf(stderr, "%f ", expr_eval(&e)); }
+  vec_foreach(args, e, i) {
+    fprintf(stderr, "%f ", expr_eval(&e));
+  }
   fprintf(stderr, "\n");
   return 0;
 }
 
 static struct expr_func user_funcs[] = {
-    {"nop", user_func_nop, user_func_nop_cleanup, sizeof(struct nop_context)},
-    {"add", user_func_add, NULL, 0},
-    {"next", user_func_next, NULL, 0},
-    {"print", user_func_print, NULL, 0},
-    {NULL, NULL, NULL, 0},
+  {"nop", user_func_nop, user_func_nop_cleanup, sizeof(struct nop_context)},
+  {"add", user_func_add, NULL, 0},
+  {"next", user_func_next, NULL, 0},
+  {"print", user_func_print, NULL, 0},
+  {NULL, NULL, NULL, 0},
 };
 
 static void test_expr(char *s, expr_num_t expected) {
@@ -168,7 +176,7 @@ static void test_expr(char *s, expr_num_t expected) {
   }
   expr_num_t result = expr_eval(e);
 
-  char *p = (char *)malloc(strlen(s) + 1);
+  char *p = (char *) malloc(strlen(s) + 1);
   strncpy(p, s, strlen(s) + 1);
   for (char *it = p; *it; it++) {
     if (*it == '\n') {
@@ -188,22 +196,20 @@ static void test_expr(char *s, expr_num_t expected) {
 }
 
 static void test_expr_error(char *s, int near, int error) {
-  const char *ERRORS[] = {
-    "EXPR_ERR_UNKNOWN",
-    "EXPR_ERR_UNEXPECTED_NUMBER",
-    "EXPR_ERR_UNEXPECTED_WORD",
-    "EXPR_ERR_UNEXPECTED_PARENS",
-    "EXPR_ERR_MISS_EXPECTED_OPERAND",
-    "EXPR_ERR_UNKNOWN_OPERATOR",
-    "EXPR_ERR_INVALID_FUNC_NAME",
-    "EXPR_ERR_BAD_CALL",
-    "EXPR_ERR_BAD_PARENS",
-    "EXPR_ERR_TOO_FEW_FUNC_ARGS",
-    "EXPR_ERR_FIRST_ARG_IS_NOT_VAR",
-    "EXPR_ERR_ALLOCATION_FAILED",
-    "EXPR_ERR_BAD_VARIABLE_NAME",
-    "EXPR_ERR_BAD_ASSIGNMENT"
-  };
+  const char *ERRORS[] = {"EXPR_ERR_UNKNOWN",
+                          "EXPR_ERR_UNEXPECTED_NUMBER",
+                          "EXPR_ERR_UNEXPECTED_WORD",
+                          "EXPR_ERR_UNEXPECTED_PARENS",
+                          "EXPR_ERR_MISS_EXPECTED_OPERAND",
+                          "EXPR_ERR_UNKNOWN_OPERATOR",
+                          "EXPR_ERR_INVALID_FUNC_NAME",
+                          "EXPR_ERR_BAD_CALL",
+                          "EXPR_ERR_BAD_PARENS",
+                          "EXPR_ERR_TOO_FEW_FUNC_ARGS",
+                          "EXPR_ERR_FIRST_ARG_IS_NOT_VAR",
+                          "EXPR_ERR_ALLOCATION_FAILED",
+                          "EXPR_ERR_BAD_VARIABLE_NAME",
+                          "EXPR_ERR_BAD_ASSIGNMENT"};
   struct expr_var_list vars = {0};
   int n, f;
   struct expr *e = expr_create2(s, strlen(s), &vars, user_funcs, &n, &f);
@@ -212,11 +218,13 @@ static void test_expr_error(char *s, int near, int error) {
     status = 1;
   }
   if (n != near) {
-    printf("FAIL: %s should return error near to %d, but returned at %d\n", s, near, n);
+    printf("FAIL: %s should return error near to %d, but returned at %d\n", s,
+           near, n);
     status = 1;
   }
   if (f != error) {
-    printf("FAIL: %s should return error %s, but returned %s\n", s, ERRORS[-error], ERRORS[-f]);
+    printf("FAIL: %s should return error %s, but returned %s\n", s,
+           ERRORS[-error], ERRORS[-f]);
     status = 1;
   }
   expr_destroy(e, &vars);
@@ -386,7 +394,7 @@ static void test_benchmark(const char *s) {
   double end = t.tv_sec + t.tv_usec * 1e-6;
   expr_destroy(e, &vars);
   double ns = 1000000000 * (end - start) / N;
-  printf("BENCH %40s:\t%f ns/op (%dM op/sec)\n", s, ns, (int)(1000 / ns));
+  printf("BENCH %40s:\t%f ns/op (%dM op/sec)\n", s, ns, (int) (1000 / ns));
 }
 
 static void test_bad_syntax() {
@@ -404,7 +412,8 @@ static void test_bad_syntax() {
   test_expr_error("nop=", 4, EXPR_ERR_BAD_ASSIGNMENT);
   test_expr_error("nop(", 4, EXPR_ERR_BAD_PARENS);
   test_expr_error("unknownfunc()", 12, EXPR_ERR_INVALID_FUNC_NAME);
-  test_expr_error("$(recurse, recurse()), recurse()", 19, EXPR_ERR_INVALID_FUNC_NAME);
+  test_expr_error("$(recurse, recurse()), recurse()", 19,
+                  EXPR_ERR_INVALID_FUNC_NAME);
   test_expr_error("),", 1, EXPR_ERR_UNEXPECTED_PARENS);
   test_expr_error("+(", 1, EXPR_ERR_MISS_EXPECTED_OPERAND);
   test_expr_error("2=3", 3, EXPR_ERR_BAD_ASSIGNMENT);
