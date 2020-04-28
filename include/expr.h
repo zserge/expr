@@ -716,6 +716,8 @@ static struct expr *expr_create2(const char *s, size_t len,
   *error = EXPR_ERR_UNKNOWN;
   for (;;) {
     int n = expr_next_token(s, len, &flags);
+    const char *tok;
+    int paren_next;
     if (n == 0) {
       break;
     } else if (n < 0) {
@@ -723,7 +725,7 @@ static struct expr *expr_create2(const char *s, size_t len,
       goto cleanup;
     }
     *near += n;
-    const char *tok = s;
+    tok = s;
     s = s + n;
     len = len - n;
     if (*tok == '#') {
@@ -755,7 +757,7 @@ static struct expr *expr_create2(const char *s, size_t len,
     if (isspace(*tok)) {
       continue;
     }
-    int paren_next = EXPR_PAREN_ALLOWED;
+    paren_next = EXPR_PAREN_ALLOWED;
 
     if (idn > 0) {
       if (n == 1 && *tok == '(') {
@@ -790,8 +792,10 @@ static struct expr *expr_create2(const char *s, size_t len,
       if (paren == EXPR_PAREN_EXPECTED) {
         struct expr_string str = {"{", 1};
         vec_push(&os, str);
-        struct expr_arg arg = {vec_len(&os), vec_len(&es), vec_init()};
-        vec_push(&as, arg);
+        {
+          struct expr_arg arg = {vec_len(&os), vec_len(&es), vec_init()};
+          vec_push(&as, arg);
+        }
       } else if (paren == EXPR_PAREN_ALLOWED) {
         struct expr_string str = {"(", 1};
         vec_push(&os, str);
@@ -909,6 +913,7 @@ static struct expr *expr_create2(const char *s, size_t len,
         o2 = vec_peek(&os);
       }
       for (;;) {
+        enum expr_type type2;
         if (n == 1 && *tok == ',' && vec_len(&os) > 0) {
           struct expr_string str = vec_peek(&os);
           if (str.n == 1 && *str.s == '{') {
@@ -917,7 +922,7 @@ static struct expr *expr_create2(const char *s, size_t len,
             break;
           }
         }
-        enum expr_type type2 = expr_op(o2.s, o2.n, -1);
+        type2 = expr_op(o2.s, o2.n, -1);
         if (!(type2 != OP_UNKNOWN && expr_prec(op, type2))) {
           struct expr_string str = {tok, n};
           vec_push(&os, str);
@@ -972,11 +977,11 @@ static struct expr *expr_create2(const char *s, size_t len,
     }
   }
 
+cleanup : {
   int i, j;
   struct macro m;
   struct expr e;
   struct expr_arg a;
-cleanup:
   vec_foreach(&macros, m, i) {
     struct expr e;
     vec_foreach(&m.body, e, j) {
@@ -997,6 +1002,7 @@ cleanup:
     }
     vec_free(&a.args);
   }
+}
   vec_free(&as);
 
   /*vec_foreach(&os, o, i) {vec_free(&m.body);}*/
