@@ -14,6 +14,7 @@
 #endif /* _MSC_VER */
 
 #ifdef _MSC_VER
+
 int gettimeofday(struct timeval *tv, struct timezone *tz) {
   static LONGLONG birthunixhnsec = 116444736000000000; /* in units of 100 ns */
   FILETIME systemtime;
@@ -124,15 +125,6 @@ static int assert_tokens(char *s, char **expected) {
 
 static void test_tokenizer(void) {
   unsigned int i;
-#ifdef _MSC_VER
-  char *T1[] = {"", NULL};
-  char *T2[] = {"1", "1", NULL};
-  char *T3[] = {"1+11", "1", "+", "11", NULL};
-  char *T4[] = {"1*11", "1", "*", "11", NULL};
-  char *T5[] = {"1**11", "1", "**", "11", NULL};
-  char *T6[] = {"1**-11", "1", "**", "-", "11", NULL};
-  char **TESTS[] = {T1, T2, T3, T4, T5, T6};
-#else
   char **TESTS[] = {
     (char *[]){"", NULL},
     (char *[]){"1", "1", NULL},
@@ -141,7 +133,6 @@ static void test_tokenizer(void) {
     (char *[]){"1**11", "1", "**", "11", NULL},
     (char *[]){"1**-11", "1", "**", "-", "11", NULL},
   };
-#endif
   for (i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
     assert_tokens(TESTS[i][0], TESTS[i] + 1);
   }
