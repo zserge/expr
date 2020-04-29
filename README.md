@@ -86,9 +86,9 @@ Takes an expression and immediately returns the result of it. If there is a pars
 Only the following functions from libc are used to reduce the footprint and
 make it easier to use:
 
-- `calloc()`, `realloc()` and `free()` - memory management (all replaceable via macro)
+- `calloc()`, `realloc()`, `free()` and `memcpy()` - memory management (all replaceable via macro)
 - `isnan()`, `isinf()`, `fmod()`, `pow()` - math operations (`fmod()` and `pow()` replaceable via macro)
-- `strlen()`, `strncmp()`, `strncpy()` and `snprintf()` - tokenizing and parsing (all replaceable via macro)
+- `strlen()`, `strncmp()` and `snprintf()` - tokenizing and parsing (all replaceable via macro)
 
 ## Running tests
 

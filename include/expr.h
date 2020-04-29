@@ -12,24 +12,6 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _MSC_VER
-#include <float.h>
-
-#ifndef NAN
-static unsigned long __nan[2] = {0xffffffff, 0x7fffffff};
-#define NAN (*(double *) __nan)
-#endif /* NAN */
-
-#ifndef INFINITY
-static unsigned long __inf[2] = {0x0, 0x7ff00000};
-#define INFINITY (*(double *) __inf)
-#endif /* INFINITY */
-
-#define isnan(_x) _isnan(_x)
-#define isinf(_x) (!_finite(_x))
-
-#define snprintf _snprintf
-#else /* _MSC_VER */
 #ifndef NAN
 #define NAN (0.0 / 0.0)
 #endif /* NAN */
@@ -37,7 +19,6 @@ static unsigned long __inf[2] = {0x0, 0x7ff00000};
 #ifndef INFINITY
 #define INFINITY (1.0 / 0.0)
 #endif /* INFINITY */
-#endif /* _MSC_VER */
 
 /*
  * Expression number type
@@ -58,6 +39,9 @@ static unsigned long __inf[2] = {0x0, 0x7ff00000};
 #ifndef expr_free
 #define expr_free free
 #endif /* expr_free */
+#ifndef expr_memcpy
+#define expr_memcpy memcpy
+#endif /* expr_memcpy */
 
 /*
  * String handling
@@ -68,9 +52,6 @@ static unsigned long __inf[2] = {0x0, 0x7ff00000};
 #ifndef expr_strncmp
 #define expr_strncmp strncmp
 #endif /* expr_strncmp */
-#ifndef expr_strncpy
-#define expr_strncpy strncpy
-#endif /* expr_strncpy */
 #ifndef expr_snprintf
 #define expr_snprintf snprintf
 #endif /* expr_snprintf */
@@ -197,13 +178,8 @@ struct expr {
   } param;
 };
 
-#ifdef _MSC_VER
-#define expr_init()                                                            \
-  { (enum expr_type) 0 }
-#else
 #define expr_init()                                                            \
   { .type = (enum expr_type) 0 }
-#endif
 
 struct expr_string {
   const char *s;
@@ -365,7 +341,7 @@ static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
   }
   v->next = vars->head;
   v->value = 0;
-  expr_strncpy(v->name, s, len);
+  expr_memcpy(v->name, s, len);
   v->name[len] = '\0';
   vars->head = v;
   return v;
@@ -536,7 +512,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     return i;
   } else if (isdigit(c)) {
     if ((*flags & EXPR_TNUMBER) == 0) {
-      return EXPR_ERR_UNEXPECTED_NUMBER; // unexpected number
+      return EXPR_ERR_UNEXPECTED_NUMBER; /* unexpected number */
     }
     *flags = EXPR_TOP | EXPR_TCLOSE;
     while ((c == '.' || isdigit(c)) && i < len) {
@@ -546,7 +522,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     return i;
   } else if (isfirstvarchr(c)) {
     if ((*flags & EXPR_TWORD) == 0) {
-      return EXPR_ERR_UNEXPECTED_WORD; // unexpected word
+      return EXPR_ERR_UNEXPECTED_WORD; /* unexpected word */
     }
     *flags = EXPR_TOP | EXPR_TOPEN | EXPR_TCLOSE;
     while ((isvarchr(c)) && i < len) {
@@ -560,13 +536,13 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
     } else if (c == ')' && (*flags & EXPR_TCLOSE) != 0) {
       *flags = EXPR_TOP | EXPR_TCLOSE;
     } else {
-      return EXPR_ERR_UNEXPECTED_PARENS; // unexpected parenthesis
+      return EXPR_ERR_UNEXPECTED_PARENS; /* unexpected parenthesis */
     }
     return 1;
   } else {
     if ((*flags & EXPR_TOP) == 0) {
       if (expr_op(&c, 1, 1) == OP_UNKNOWN) {
-        return EXPR_ERR_MISS_EXPECTED_OPERAND; // missing expected operand
+        return EXPR_ERR_MISS_EXPECTED_OPERAND; /* missing expected operand */
       }
       *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN | EXPR_UNARY;
       return 1;
@@ -582,7 +558,7 @@ static int expr_next_token(const char *s, size_t len, int *flags) {
         c = s[i];
       }
       if (!found) {
-        return EXPR_ERR_UNKNOWN_OPERATOR; // unknown operator
+        return EXPR_ERR_UNKNOWN_OPERATOR; /* unknown operator */
       }
       *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN;
       return i;
@@ -654,13 +630,7 @@ static struct expr expr_binary(enum expr_type type, struct expr a,
   return e;
 }
 
-#ifdef _MSC_VER
-#define inline __inline
-#endif
 static inline void expr_copy(struct expr *dst, struct expr *src) {
-#ifdef _MSC_VER
-#undef inline
-#endif
   int i;
   struct expr arg;
   dst->type = src->type;
@@ -801,11 +771,11 @@ static struct expr *expr_create2(const char *s, size_t len,
         vec_push(&os, str);
       } else {
         *error = EXPR_ERR_BAD_CALL;
-        goto cleanup; // Bad call
+        goto cleanup; /* bad call */
       }
     } else if (paren == EXPR_PAREN_EXPECTED) {
       *error = EXPR_ERR_BAD_CALL;
-      goto cleanup; // Bad call
+      goto cleanup; /* bad call */
     } else if (n == 1 && *tok == ')') {
       int minlen = (vec_len(&as) > 0 ? vec_peek(&as).oslen : 0);
       while (vec_len(&os) > minlen && *vec_peek(&os).s != '(' &&
@@ -817,7 +787,7 @@ static struct expr *expr_create2(const char *s, size_t len,
       }
       if (vec_len(&os) == 0) {
         *error = EXPR_ERR_BAD_PARENS;
-        goto cleanup; // Bad parens
+        goto cleanup; /* bad parens */
       }
       {
         struct expr_string str = vec_pop(&os);
@@ -844,12 +814,7 @@ static struct expr *expr_create2(const char *s, size_t len,
             }
             for (v = vars->head; v; v = v->next) {
               if (&v->value == u->param.var.value) {
-#ifdef _MSC_VER
-                struct macro m = {v->name};
-                m.body = arg.args;
-#else
                 struct macro m = {v->name, arg.args};
-#endif
                 vec_push(&macros, m);
                 break;
               }
@@ -962,7 +927,7 @@ static struct expr *expr_create2(const char *s, size_t len,
         idn = n;
       } else {
         *error = EXPR_ERR_BAD_VARIABLE_NAME;
-        goto cleanup; // Bad variable name, e.g. '2.3.4' or '4ever'
+        goto cleanup; /* bad variable name, e.g. '2.3.4' or '4ever' */
       }
     }
     paren = paren_next;
@@ -976,7 +941,7 @@ static struct expr *expr_create2(const char *s, size_t len,
     struct expr_string rest = vec_pop(&os);
     if (rest.n == 1 && (*rest.s == '(' || *rest.s == ')')) {
       *error = EXPR_ERR_BAD_PARENS;
-      goto cleanup; // Bad paren
+      goto cleanup; /* bad paren */
     }
     if (expr_bind(rest.s, rest.n, &es) == -1) {
       *error = (*rest.s == '=') ? EXPR_ERR_BAD_ASSIGNMENT : EXPR_ERR_BAD_PARENS;
@@ -984,7 +949,7 @@ static struct expr *expr_create2(const char *s, size_t len,
     }
   }
 
-  result = expr_alloc(sizeof(struct expr));
+  result = (struct expr *) expr_alloc(sizeof(struct expr));
   if (result != NULL) {
     if (vec_len(&es) == 0) {
       result->type = OP_CONST;

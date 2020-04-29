@@ -7,7 +7,31 @@
 
 #include <assert.h>
 #include <stdio.h>
+#ifdef _MSC_VER
+#include <windows.h>
+#else /* _MSC_VER */
 #include <sys/time.h>
+#endif /* _MSC_VER */
+
+#ifdef _MSC_VER
+int gettimeofday(struct timeval *tv, struct timezone *tz) {
+  static LONGLONG birthunixhnsec = 116444736000000000; /* in units of 100 ns */
+  FILETIME systemtime;
+  GetSystemTimeAsFileTime(&systemtime);
+  ULARGE_INTEGER utime;
+  utime.LowPart = systemtime.dwLowDateTime;
+  utime.HighPart = systemtime.dwHighDateTime;
+  ULARGE_INTEGER birthunix;
+  birthunix.LowPart = (DWORD) birthunixhnsec;
+  birthunix.HighPart = birthunixhnsec >> 32;
+  LONGLONG usecs;
+  usecs = (LONGLONG)((utime.QuadPart - birthunix.QuadPart) / 10);
+  tv->tv_sec = (long) (usecs / 1000000);
+  tv->tv_usec = (long) (usecs % 1000000);
+  return 0;
+}
+
+#endif /* _MSC_VER */
 
 int status = 0;
 
@@ -69,7 +93,7 @@ static void test_vars(void) {
  */
 
 static int assert_tokens(char *s, char **expected) {
-  int len = strlen(s);
+  size_t len = strlen(s);
   int flags = EXPR_TDEFAULT;
   char *test = s;
   for (;;) {
@@ -218,7 +242,7 @@ static void test_expr(char *s, expr_num_t expected) {
   }
 }
 
-static void test_expr_error(char *s, int near, int error) {
+static void test_expr_error(char *s, int pos, int error) {
   const char *ERRORS[] = {
     "EXPR_ERR_UNKNOWN",
     "EXPR_ERR_UNEXPECTED_NUMBER",
@@ -242,9 +266,9 @@ static void test_expr_error(char *s, int near, int error) {
     printf("FAIL: %s should return error\n", s);
     status = 1;
   }
-  if (n != near) {
+  if (n != pos) {
     printf("FAIL: %s should return error near to %d, but returned at %d\n", s,
-           near, n);
+           pos, n);
     status = 1;
   }
   if (f != error) {
