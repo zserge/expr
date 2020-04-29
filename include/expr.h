@@ -20,6 +20,12 @@ extern "C" {
 #define INFINITY (1.0 / 0.0)
 #endif /* INFINITY */
 
+#ifdef __GNUC__
+#define EXPR_UNUSED __attribute__((used))
+#else /* __GNUC__ */
+#define EXPR_UNUSED
+#endif /* __GNUC__ */
+
 /*
  * Expression number type
  */
@@ -1040,7 +1046,7 @@ static void expr_destroy(struct expr *e, struct expr_var_list *vars) {
   }
 }
 
-static expr_num_t expr_calc(const char *s) {
+EXPR_UNUSED static expr_num_t expr_calc(const char *s) {
   struct expr_var_list vars = {0};
   struct expr_func funcs[] = {{NULL, NULL, NULL, 0}};
   struct expr *e;

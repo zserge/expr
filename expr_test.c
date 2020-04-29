@@ -212,12 +212,16 @@ static void test_expr(char *s, expr_num_t expected) {
   {
     expr_num_t result = expr_eval(e);
 
+    size_t l;
     char *it;
     char *p = (char *) malloc(strlen(s) + 1);
     if (p == NULL) {
       return;
     }
-    strncpy(p, s, strlen(s) + 1);
+    l = strlen(s);
+    memcpy(p, s, l + 1);
+    p[l] = '\0';
+
     for (it = p; *it; it++) {
       if (*it == '\n') {
         *it = '\\';
