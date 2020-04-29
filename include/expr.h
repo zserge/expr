@@ -921,7 +921,7 @@ static struct expr *expr_create2(const char *s, size_t len,
         }
       }
     } else {
-      if (n > 0 && !isdigit(*tok)) {
+      if (/*n > 0 &&*/ !isdigit(*tok)) {
         /* Valid identifier, a variable or a function */
         id = tok;
         idn = n;

@@ -221,8 +221,11 @@ static void test_expr(char *s, expr_num_t expected) {
   {
     expr_num_t result = expr_eval(e);
 
-    char *p = (char *) malloc(strlen(s) + 1);
     char *it;
+    char *p = (char *) malloc(strlen(s) + 1);
+    if (p == NULL) {
+      return;
+    }
     strncpy(p, s, strlen(s) + 1);
     for (it = p; *it; it++) {
       if (*it == '\n') {

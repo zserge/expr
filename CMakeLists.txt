@@ -52,6 +52,9 @@ if(EXPR_PVS_STUDIO)
     FORMAT
     fullhtml
     ANALYZE
+    example1
+    example2
+    example3
     test
     LOG
     pvs_studio_fullhtml)
