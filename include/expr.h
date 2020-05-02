@@ -1001,9 +1001,9 @@ cleanup : {
   return result;
 }
 
-static struct expr *expr_create(const char *s, size_t len,
-                                struct expr_var_list *vars,
-                                struct expr_func *funcs) {
+EXPR_UNUSED static struct expr *expr_create(const char *s, size_t len,
+                                            struct expr_var_list *vars,
+                                            struct expr_func *funcs) {
   int near;
   int error;
   return expr_create2(s, len, vars, funcs, &near, &error);
