@@ -14,9 +14,10 @@ static struct expr_func user_funcs[] = {
 };
 
 int main(void) {
+  int near, error;
   const char *s = "x = 5, sum(2, x)";
   struct expr_var_list vars = {0};
-  struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
+  struct expr *e = expr_create2(s, strlen(s), &vars, user_funcs, &near, &error);
   if (e == NULL) {
     printf("Syntax error");
     return 1;

@@ -1046,22 +1046,25 @@ static void expr_destroy(struct expr *e, struct expr_var_list *vars) {
   }
 }
 
-EXPR_UNUSED static expr_num_t expr_calc2(const char *s, size_t len) {
+EXPR_UNUSED static expr_num_t expr_calc2(const char *s, size_t len, int *near,
+                                         int *error) {
   struct expr_var_list vars = {0};
   struct expr_func funcs[] = {{NULL, NULL, NULL, 0}};
   struct expr *e;
   expr_num_t r;
-  e = expr_create(s, len, &vars, funcs);
+  e = expr_create2(s, len, &vars, funcs, near, error);
   if (e == NULL) {
     return NAN;
   }
+  *near = 0;
+  *error = 0;
   r = expr_eval(e);
   expr_destroy(e, &vars);
   return r;
 }
 
-EXPR_UNUSED static expr_num_t expr_calc(const char *s) {
-  return expr_calc2(s, expr_strlen(s));
+EXPR_UNUSED static expr_num_t expr_calc(const char *s, int *near, int *error) {
+  return expr_calc2(s, expr_strlen(s), near, error);
 }
 
 #ifdef __cplusplus

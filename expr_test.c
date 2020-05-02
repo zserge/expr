@@ -492,8 +492,9 @@ static void test_bad_syntax(void) {
 }
 
 static void test_calc(void) {
+  int near, error;
   const char *p = "2+3";
-  expr_num_t result = expr_calc(p);
+  expr_num_t result = expr_calc(p, &near, &error);
   expr_num_t expected = 5;
   if ((isnan(result) && !isnan(expected)) ||
       fabs(result - expected) > 0.00001f) {
