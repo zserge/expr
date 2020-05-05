@@ -145,24 +145,19 @@ struct nop_context {
   void *p;
 };
 
+static int fake_context = 123;
+
 static void user_func_nop_cleanup(struct expr_func *f, void *c) {
-  struct nop_context *nop = (struct nop_context *) c;
   (void) f;
-  free(nop->p);
+  if (c != &fake_context)
+    printf("FAIL: user_func_nop_cleanup()\n");
 }
 
 static expr_num_t user_func_nop(struct expr_func *f, vec_expr_t *args,
                                 void *c) {
-  struct nop_context *nop = (struct nop_context *) c;
+  (void) f;
   (void) args;
-  if (f->ctxsz == 0) {
-    free(nop->p);
-    return 0;
-  }
-  if (nop->p == NULL) {
-    nop->p = malloc(10000);
-  }
-  return 0;
+  return (c == &fake_context) ? 1 : 0;
 }
 
 static expr_num_t user_func_add(struct expr_func *f, vec_expr_t *args,
@@ -194,7 +189,7 @@ static expr_num_t user_func_print(struct expr_func *f, vec_expr_t *args,
 }
 
 static struct expr_func user_funcs[] = {
-  {"nop", user_func_nop, user_func_nop_cleanup, sizeof(struct nop_context)},
+  {"nop", user_func_nop, user_func_nop_cleanup, &fake_context},
   {"add", user_func_add, NULL, 0},
   {"next", user_func_next, NULL, 0},
   {"print", user_func_print, NULL, 0},
@@ -253,7 +248,6 @@ static void test_expr_error(char *s, int pos, int error) {
     "EXPR_ERR_BAD_PARENS",
     "EXPR_ERR_TOO_FEW_FUNC_ARGS",
     "EXPR_ERR_FIRST_ARG_IS_NOT_VAR",
-    "EXPR_ERR_ALLOCATION_FAILED",
     "EXPR_ERR_BAD_VARIABLE_NAME",
     "EXPR_ERR_BAD_ASSIGNMENT",
   };
@@ -384,7 +378,7 @@ static void test_funcs(void) {
   test_expr("add(1,2) + next(3)", 7);
   test_expr("add(1,next(2))", 4);
   test_expr("add(1,1+1) + add(2*2+1,2)", 10);
-  test_expr("nop()", 0);
+  test_expr("nop()", 1);
   test_expr("x=2,add(1, next(x))", 4);
   test_expr("$(zero), zero()", 0);
   test_expr("$(zero), zero(1, 2, 3)", 0);

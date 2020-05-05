@@ -303,7 +303,7 @@ struct expr_func {
   const char *name;
   exprfn_t f;
   exprfn_cleanup_t cleanup;
-  size_t ctxsz;
+  void *context;
 };
 
 static struct expr_func *expr_func(struct expr_func *funcs, const char *s,
@@ -485,9 +485,8 @@ static expr_num_t expr_eval(struct expr *e) {
 #define EXPR_ERR_BAD_PARENS (-8)
 #define EXPR_ERR_TOO_FEW_FUNC_ARGS (-9)
 #define EXPR_ERR_FIRST_ARG_IS_NOT_VAR (-10)
-#define EXPR_ERR_ALLOCATION_FAILED (-11)
-#define EXPR_ERR_BAD_VARIABLE_NAME (-12)
-#define EXPR_ERR_BAD_ASSIGNMENT (-13)
+#define EXPR_ERR_BAD_VARIABLE_NAME (-11)
+#define EXPR_ERR_BAD_ASSIGNMENT (-12)
 
 static int expr_next_token(const char *s, size_t len, int *flags) {
   unsigned int i = 0;
@@ -647,9 +646,7 @@ static inline void expr_copy(struct expr *dst, struct expr *src) {
       expr_copy(&tmp, &arg);
       vec_push(&dst->param.func.args, tmp);
     }
-    if (src->param.func.f->ctxsz > 0) {
-      dst->param.func.context = expr_alloc(src->param.func.f->ctxsz);
-    }
+    dst->param.func.context = src->param.func.f->context;
   } else if (src->type == OP_CONST) {
     dst->param.num.value = src->param.num.value;
   } else if (src->type == OP_VAR) {
@@ -876,14 +873,7 @@ static struct expr *expr_create2(const char *s, size_t len,
               bound_func.type = OP_FUNC;
               bound_func.param.func.f = f;
               bound_func.param.func.args = arg.args;
-              if (f->ctxsz > 0) {
-                void *p = expr_alloc(f->ctxsz);
-                if (p == NULL) {
-                  *error = EXPR_ERR_ALLOCATION_FAILED;
-                  goto cleanup; /* allocation failed */
-                }
-                bound_func.param.func.context = p;
-              }
+              bound_func.param.func.context = f->context;
               vec_push(&es, bound_func);
             }
           }
@@ -1021,7 +1011,6 @@ static void expr_destroy_args(struct expr *e) {
       if (e->param.func.f->cleanup != NULL) {
         e->param.func.f->cleanup(e->param.func.f, e->param.func.context);
       }
-      expr_free(e->param.func.context);
     }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
     vec_foreach(&e->param.op.args, arg, i) {
