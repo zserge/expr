@@ -1007,10 +1007,8 @@ static void expr_destroy_args(struct expr *e) {
       expr_destroy_args(&arg);
     }
     vec_free(&e->param.func.args);
-    if (e->param.func.context != NULL) {
-      if (e->param.func.f->cleanup != NULL) {
-        e->param.func.f->cleanup(e->param.func.f, e->param.func.context);
-      }
+    if (e->param.func.f->cleanup != NULL) {
+      e->param.func.f->cleanup(e->param.func.f, e->param.func.context);
     }
   } else if (e->type != OP_CONST && e->type != OP_VAR) {
     vec_foreach(&e->param.op.args, arg, i) {
