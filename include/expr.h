@@ -309,9 +309,11 @@ struct expr_func {
 static struct expr_func *expr_func(struct expr_func *funcs, const char *s,
                                    size_t len) {
   struct expr_func *f;
-  for (f = funcs; f->name; f++) {
-    if (expr_strlen(f->name) == len && expr_strncmp(f->name, s, len) == 0) {
-      return f;
+  if (funcs != NULL) {
+    for (f = funcs; f->name; f++) {
+      if (expr_strlen(f->name) == len && expr_strncmp(f->name, s, len) == 0) {
+        return f;
+      }
     }
   }
   return NULL;
