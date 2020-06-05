@@ -637,7 +637,7 @@ static struct expr expr_binary(enum expr_type type, struct expr a,
   return e;
 }
 
-static inline void expr_copy(struct expr *dst, struct expr *src) {
+static void expr_copy(struct expr *dst, struct expr *src) {
   int i;
   struct expr arg;
   dst->type = src->type;
@@ -844,7 +844,7 @@ static struct expr *expr_create2(const char *s, size_t len,
               p = &root;
               /* Assign macro parameters */
               for (j = 0; j < vec_len(&arg.args); j++) {
-                char varname[4];
+                char varname[13];
                 expr_snprintf(varname, sizeof(varname) - 1, "$%d", (j + 1));
                 {
                   struct expr_var *v =
