@@ -1,12 +1,13 @@
-CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Wextra
+CFLAGS ?= -std=c99 -g -O0 -pedantic -Wall -Werror -Wextra -Wno-unused-function -Wpedantic -Wdeclaration-after-statement -Wstrict-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -Iinclude
 LDFLAGS ?= -lm -O0 -g
 
+INC_DIR := include
 TESTBIN := expr_test
 
 all:
-	@echo make test      - run tests
-	@echo make llvm-cov  - report test coverage using LLVM (set LLVM_VER if needed)
-	@echo make gcov  - report test coverage (set GCC_VER if needed)
+	@echo make test     - run tests
+	@echo make llvm-cov - report test coverage using LLVM "(set LLVM_VER if needed)"
+	@echo make gcov     - report test coverage "(set GCC_VER if needed)"
 
 test: $(TESTBIN)
 	./$(TESTBIN)
@@ -14,7 +15,7 @@ test: $(TESTBIN)
 $(TESTBIN): expr_test.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
-expr_test.o: expr_test.c expr.h expr_debug.h
+expr_test.o: expr_test.c $(INC_DIR)/expr.h $(INC_DIR)/expr_debug.h
 
 llvm-cov: CC := clang$(LLVM_VER)
 llvm-cov: CFLAGS += -fprofile-instr-generate -fcoverage-mapping

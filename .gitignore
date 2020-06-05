@@ -33,6 +33,8 @@ expr_test
 *.gcda
 *.gcno
 *.gcov
+*.profraw
+*.profdata
 
 # Debug files
 *.dSYM/
@@ -40,3 +42,9 @@ expr_test
 
 # Makefile local config
 config.mk
+
+# Build directory
+build/
+
+# VSCode directory
+.vscode

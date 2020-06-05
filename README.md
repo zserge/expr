@@ -7,81 +7,88 @@ input and returns floating-point number as a result.
 
 ## Features
 
-* Supports arithmetic, bitwise and logical operators
-* Supports variables
-* Can be extended with custom functions
-* Simple evaluation takes ~50 nanoseconds on an average PC
-* Low memory usage makes it suitable for embedded systems
-* Pure C99 with no external dependencies
-* Good test coverage
-* Easy to understand (~600 LOC in a single header file)
+- Supports arithmetic, bitwise and logical operators
+- Supports variables
+- Supports macros
+- Can be extended with custom functions
+- Error handling with error kind and position
+- Simple evaluation takes ~50 nanoseconds on an average PC
+- Low memory usage makes it suitable for embedded systems
+- Pure C99 with no external dependencies
+- Good test coverage
+- Easy to understand (~600 LOC in a single header file)
 
 ## Example
 
 ```c
 #include "expr.h"
 
-// Custom function that returns the sum of its two arguments
-static float add(struct expr_func *f, vec_expr_t *args, void *c) {
-  float a = expr_eval(&vec_nth(args, 0));
-  float b = expr_eval(&vec_nth(args, 1));
-  return a + b;
-}
-
-static struct expr_func user_funcs[] = {
-    {"add", add, NULL, 0},
-    {NULL, NULL, NULL, 0},
-};
-
-int main() {
-  const char *s = "x = 5, add(2, x)";
-  struct expr_var_list vars = {0};
-  struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
-  if (e == NULL) {
-    printf("Syntax error");
-    return 1;
-  }
-
-  float result = expr_eval(e);
-  printf("result: %f\n", result);
-
-  expr_destroy(e, &vars);
+int main(void) {
+  printf("result: %f\n", expr_calc("2 + 3"));
   return 0;
 }
 ```
 
-Output: `result: 7.000000`
+Output: `result: 5.000000`
 
 ## API
 
-`struct expr *expr_create(const char *s, size_t len, struct expr_var_list
-*vars, struct expr_func *funcs)` - returns compiled expression from the given
-string. If expression uses variables - they are bound to `vars`, so you can
-modify values before evaluation or check the results after the evaluation.
+```c
+static struct expr *expr_create2(const char *s, size_t len,
+                                 struct expr_var_list *vars,
+                                 struct expr_func *funcs, int *near,
+                                 int *error);
 
-`float expr_eval(struct expr *e)` - evaluates compiled expression.
+static struct expr *expr_create(const char *s, size_t len,
+                                struct expr_var_list *vars,
+                                struct expr_func *funcs);
+```
 
-`void expr_destroy(struct expr *e, struct expr_var_list *vars)` - cleans up
-memory. Parameters can be NULL (e.g. if you want to clean up expression, but
-reuse variables for another expression).
+Returns compiled expression from the given string. If expression uses
+variables - they are bound to `vars`, so you can modify values before evaluation
+or check the results after the evaluation. The `near` and `error` arguments are
+used for error handling.
 
-`struct expr_var *expr_var(struct expr_var *vars, const char *s, size_t len)` -
-returns/creates variable of the given name in the given list. This can be used
+```c
+static void expr_destroy(struct expr *e, struct expr_var_list *vars);
+```
+
+Cleans up. Parameters can be `NULL` (e.g. if you want to clean up expression,
+but reuse variables for another expression).
+
+```c
+static expr_num_t expr_eval(struct expr *e);
+```
+
+Evaluates compiled expression.
+
+```c
+static struct expr_var *expr_var(struct expr_var_list *vars, const char *s,
+                                 size_t len);
+```
+
+Returns/creates variable of the given name in the given list. This can be used
 to get variable references to get/set them manually.
+
+```c
+static expr_num_t expr_calc(const char *s);
+```
+
+Takes an expression and immediately returns the result of it. If there is a parse error, `expr_calc()` returns `NAN`.
 
 ## Supported operators
 
-* Arithmetics: `+`, `-`, `*`, `/`, `%` (remainder), `**` (power)
-* Bitwise: `<<`, `>>`, `&`, `|`, `^` (xor or unary bitwise negation)
-* Logical: `<`, `>`, `==`, `!=`, `<=`, `>=`, `&&`, `||`, `!` (unary not)
-* Other: `=` (assignment, e.g. `x=y=5`), `,` (separates expressions or function parameters)
+- Arithmetics: `+`, `-`, `*`, `/`, `%` (remainder), `**` (power)
+- Bitwise: `<<`, `>>`, `&`, `|`, `^` (xor or unary bitwise negation)
+- Logical: `<`, `>`, `==`, `!=`, `<=`, `>=`, `&&`, `||`, `!` (unary not)
+- Other: `=` (assignment, e.g. `x=y=5`), `,` (separates expressions or function parameters)
 
 Only the following functions from libc are used to reduce the footprint and
 make it easier to use:
 
-* calloc, realloc and free - memory management
-* isnan, isinf, fmodf, powf - math operations
-* strlen, strncmp, strncpy, strtof - tokenizing and parsing
+- `calloc()`, `realloc()`, `free()` and `memcpy()` - memory management (all replaceable via macro)
+- `isnan()`, `isinf()`, `fmod()`, `pow()` - math operations (`fmod()` and `pow()` replaceable via macro)
+- `strlen()`, `strncmp()` and `snprintf()` - tokenizing and parsing (all replaceable via macro)
 
 ## Running tests
 
@@ -94,8 +101,30 @@ depending on whether you use GCC or LLVM/Clang.
 Since people may have different compiler versions, one may specify a version
 explicitly, e.g. `make llvm-cov LLVM_VER=-3.8` or `make gcov GCC_VER=-5`.
 
+## Building with CMake
+
+To build all the examples, tests and benchmarks using [CMake](https://cmake.org), do:
+
+```bash
+mkdir build && cd build/
+cmake ..
+make
+```
+
+## Running PVS Studio analysis
+
+Download and install the PVS's command line tool [`how-to-use-pvs-studio-free`](https://github.com/viva64/how-to-use-pvs-studio-free) according its site instructions. After that, in the library root directory, perform the following commands:
+
+```bash
+how-to-use-pvs-studio-free -c 2 -m .
+mkdir build && cd build/
+cmake -DEXPR_PVS_STUDIO=ON ..
+make pvs_studio_analysis
+```
+
+The full PVS report will be generated in the `build/pvs_studio_fullhtml` directory.
+
 ## License
 
 Code is distributed under MIT license, feel free to use it in your proprietary
 projects as well.
-

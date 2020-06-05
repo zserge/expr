@@ -1,0 +1,12 @@
+---
+AlignTrailingComments: false
+AllowShortFunctionsOnASingleLine: None
+BreakBeforeTernaryOperators: false
+ColumnLimit: 80
+ContinuationIndentWidth: 2
+IndentCaseLabels: true
+IndentWrappedFunctionNames: true
+ReflowComments: false
+SortIncludes: false
+SpaceAfterCStyleCast: true
+...

@@ -106,7 +106,7 @@ static int expr_compile_dynasm(struct expr *e, dasm_State **Dst) {
   |.endmacro
 
   |.macro MOVIMM, reg, value
-  |  push value 
+  |  push value
   |  movss reg, dword [rsp]
   |  add rsp, aword*1
   |.endmacro
@@ -162,7 +162,7 @@ static int expr_compile_dynasm(struct expr *e, dasm_State **Dst) {
       expr_compile_dynasm(&e->param.op.args.buf[0], Dst);
       | PUSH_XMM0
       expr_compile_dynasm(&e->param.op.args.buf[1], Dst);
-      | POP_XMM0 
+      | POP_XMM0
       | mulss xmm0, xmm1
       break;
     case OP_DIVIDE:
